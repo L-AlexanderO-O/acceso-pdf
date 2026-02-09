@@ -35,6 +35,12 @@
       cursor: pointer;
     }
 
+    hr {
+      margin: 20px 0;
+      border: none;
+      border-top: 1px solid #ddd;
+    }
+
     .hidden {
       display: none;
     }
@@ -76,7 +82,7 @@
       font-size: 22px;
     }
 
-    /* ===== BOTÓN CERRAR (ESQUINA) ===== */
+    /* ===== BOTÓN CERRAR ===== */
     #cerrar-btn {
       position: fixed;
       top: 15px;
@@ -95,7 +101,7 @@
       background: rgba(0,0,0,0.85);
     }
 
-    /* ===== MENSAJE CARGANDO ===== */
+    /* ===== CARGANDO ===== */
     #cargando {
       position: absolute;
       top: 50%;
@@ -113,7 +119,6 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      perspective: 1200px;
     }
 
     #pdf-viewer canvas {
@@ -122,41 +127,6 @@
       background: white;
       box-shadow: 0 25px 50px rgba(0,0,0,0.7);
       border-radius: 6px;
-    }
-
-    /* ===== ANIMACIÓN TIPO LIBRO ===== */
-    .pagina {
-      transform-origin: left center;
-    }
-
-    .flip-next {
-      animation: pasarPagina 0.6s ease;
-    }
-
-    .flip-prev {
-      animation: pasarPaginaBack 0.6s ease;
-    }
-
-    @keyframes pasarPagina {
-      from {
-        transform: rotateY(90deg);
-        opacity: 0;
-      }
-      to {
-        transform: rotateY(0);
-        opacity: 1;
-      }
-    }
-
-    @keyframes pasarPaginaBack {
-      from {
-        transform: rotateY(-90deg);
-        opacity: 0;
-      }
-      to {
-        transform: rotateY(0);
-        opacity: 1;
-      }
     }
   </style>
 </head>
@@ -167,21 +137,41 @@
 <div class="box" id="formulario">
   <h2>Acceso al documento</h2>
 
-  <input type="text" id="nombre" placeholder="Nombre completo">
-  <input type="email" id="correo" placeholder="Correo electrónico">
+  <!-- DATOS DEL VISITANTE -->
+  <h3>🧑‍💼 Tus datos</h3>
+  <p>
+    <small>
+      Esta información corresponde a la persona que solicita el acceso
+      y se utiliza únicamente para registrar quién ingresó al documento.
+    </small>
+  </p>
 
-  <p><strong>Cantante favorito</strong><br>
-    <small>(Ambos nombres, con mayúscula ej. Leonel Rodriguez)</small>
+  <input type="text" id="nombre" placeholder="Tu nombre completo">
+  <input type="email" id="correo" placeholder="Tu correo electrónico">
+
+  <hr>
+
+  <!-- DATOS DEL AUTOR -->
+  <h3>✍️ Sobre el autor</h3>
+  <p>
+    <small>
+      Las siguientes preguntas hacen referencia al autor del documento.
+      No responden a tus gustos personales.
+    </small>
+  </p>
+
+  <p><strong>Cantante favorito del autor</strong><br>
+    <small>(Ambos nombres, con mayúscula. Ej: Damiano David)</small>
   </p>
   <input type="text" id="p1">
 
-  <p><strong>Fecha de cumpleaños</strong><br>
-    <small>(Formato: 0/0/00 usando / y números ej. 9/10/07)</small>
+  <p><strong>Fecha de cumpleaños del autor</strong><br>
+    <small>(Formato: 5/4/08 usando / y números)</small>
   </p>
   <input type="text" id="p2">
 
-  <p><strong>Serie favorita</strong><br>
-    <small>(Nombre completo, con mayúscula ej. Breaking Bad)</small>
+  <p><strong>Serie favorita del autor</strong><br>
+    <small>(Nombre completo, con mayúscula. Ej: El Mentalista)</small>
   </p>
   <input type="text" id="p3">
 
@@ -192,28 +182,22 @@
 <!-- ===== VISOR PDF ===== -->
 <div id="pdf" class="hidden">
 
-  <!-- Botón cerrar -->
   <button id="cerrar-btn" onclick="cerrarPDF()">✕</button>
 
-  <!-- Bienvenida (solo mientras carga) -->
   <div id="pdf-header">
     <h2 id="bienvenida" class="hidden"></h2>
   </div>
 
-  <!-- Cargando -->
   <p id="cargando" class="hidden">Cargando documento...</p>
 
-  <!-- PDF -->
   <div id="pdf-viewer"></div>
 </div>
 
 <!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
 
-<!-- Script principal -->
+<!-- Script -->
 <script src="script.js"></script>
 
 </body>
 </html>
-
-
