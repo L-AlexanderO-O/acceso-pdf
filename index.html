@@ -56,6 +56,28 @@
       z-index: 999;
     }
 
+    /* HEADER DEL VISOR */
+    #pdf-header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    #pdf-header h2 {
+      color: white;
+      margin-bottom: 10px;
+    }
+
+    #pdf-header button {
+      width: auto;
+      padding: 8px 16px;
+    }
+
+    #cargando {
+      color: white;
+      text-align: center;
+      margin: 20px 0;
+    }
+
     /* CONTENEDOR DEL LIBRO */
     #pdf-viewer {
       display: grid;
@@ -93,6 +115,7 @@
 
 <body>
 
+<!-- FORMULARIO -->
 <div class="box" id="formulario">
   <h2>Acceso al documento</h2>
 
@@ -120,6 +143,14 @@
 
 <!-- VISOR PDF -->
 <div id="pdf" class="hidden">
+
+  <div id="pdf-header">
+    <h2 id="bienvenida"></h2>
+    <button onclick="cerrarPDF()">Cerrar documento</button>
+  </div>
+
+  <p id="cargando" class="hidden">Cargando documento...</p>
+
   <div id="pdf-viewer"></div>
 </div>
 
