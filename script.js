@@ -22,7 +22,8 @@ function validar() {
     document.getElementById("pdf").classList.remove("hidden");
     cargarPDF();
   } else {
-    mensaje.innerText = "Alguna respuesta es incorrecta. Revisa mayúsculas y formato.";
+    mensaje.innerText =
+      "Alguna respuesta es incorrecta. Revisa mayúsculas y formato.";
   }
 }
 
@@ -32,31 +33,50 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 const urlPDF = "documento.pdf";
 
+/* ===== VISOR TIPO LIBRO ===== */
 function cargarPDF() {
   const contenedor = document.getElementById("pdf-viewer");
   contenedor.innerHTML = "";
 
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
-    for (let pagina = 1; pagina <= pdf.numPages; pagina++) {
-      pdf.getPage(pagina).then(page => {
-        const escala = 1.5;
-        const viewport = page.getViewport({ scale: escala });
+    let paginaActual = 1;
 
-        const canvas = document.createElement("canvas");
-        const context = canvas.getContext("2d");
+    function renderPar() {
+      if (paginaActual > pdf.numPages) return;
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+      // Renderiza 2 páginas por fila (libro)
+      for (let i = 0; i < 2; i++) {
+        if (paginaActual <= pdf.numPages) {
+          pdf.getPage(paginaActual).then(page => {
+            const escala = window.innerWidth > 900 ? 1.2 : 1.5;
+            const viewport = page.getViewport({ scale: escala });
 
-        contenedor.appendChild(canvas);
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
 
-        page.render({
-          canvasContext: context,
-          viewport: viewport
-        });
-      });
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            contenedor.appendChild(canvas);
+
+            page.render({
+              canvasContext: context,
+              viewport: viewport
+            });
+          });
+
+          paginaActual++;
+        }
+      }
+
+      // Pequeño delay para evitar bloqueos
+      setTimeout(renderPar, 80);
     }
+
+    renderPar();
   }).catch(err => {
+    contenedor.innerHTML =
+      "<p style='color:white;text-align:center'>Error cargando el documento</p>";
     console.error("Error cargando PDF:", err);
   });
 }
