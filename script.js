@@ -8,8 +8,44 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
 
 const urlPDF = "documento.pdf";
 
+/* ===== CONFIG BLOQUEO ===== */
+const MAX_INTENTOS = 3;
+const BLOQUEO_MINUTOS = 10;
+
+/* ===== FUNCIONES BLOQUEO ===== */
+function estaBloqueado() {
+  const bloqueoHasta = localStorage.getItem("bloqueoHasta");
+  if (!bloqueoHasta) return false;
+
+  if (Date.now() > Number(bloqueoHasta)) {
+    localStorage.removeItem("bloqueoHasta");
+    localStorage.removeItem("intentosFallidos");
+    return false;
+  }
+  return true;
+}
+
+function registrarFallo() {
+  let intentos = Number(localStorage.getItem("intentosFallidos")) || 0;
+  intentos++;
+  localStorage.setItem("intentosFallidos", intentos);
+
+  if (intentos >= MAX_INTENTOS) {
+    const bloqueoHasta = Date.now() + BLOQUEO_MINUTOS * 60 * 1000;
+    localStorage.setItem("bloqueoHasta", bloqueoHasta);
+  }
+}
+
 /* ===== VALIDACIÓN + REGISTRO ===== */
 function validar() {
+
+  /* 🔒 VERIFICAR BLOQUEO */
+  if (estaBloqueado()) {
+    document.getElementById("mensaje").innerText =
+      "Acceso bloqueado por 10 minutos debido a varios intentos fallidos.";
+    return;
+  }
+
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
 
@@ -34,6 +70,10 @@ function validar() {
   if (p1 === r1 && p2 === r2 && p3 === r3) {
     registrar(nombre, correo, "✅ Acceso permitido");
 
+    // Resetear bloqueo
+    localStorage.removeItem("intentosFallidos");
+    localStorage.removeItem("bloqueoHasta");
+
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
 
@@ -44,9 +84,11 @@ function validar() {
   }
   /* ❌ ACCESO DENEGADO */
   else {
+    registrarFallo();
     registrar(nombre, correo, "❌ Acceso denegado");
+
     mensaje.innerText =
-      "Alguna respuesta es incorrecta. Revisa mayúsculas y formato.";
+      "Alguna respuesta es incorrecta. Tras 3 intentos se bloqueará el acceso.";
   }
 }
 
@@ -94,16 +136,20 @@ function cargarPDF() {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
 
-            /* Marca de agua */
             page.render({
               canvasContext: context,
               viewport: viewport
             }).promise.then(() => {
+              /* 💧 Marca de agua */
               context.globalAlpha = 0.12;
               context.font = "40px Arial";
               context.fillStyle = "black";
               context.rotate(-0.3);
-              context.fillText("Documento confidencial", 50, canvas.height / 2);
+              context.fillText(
+                "Documento confidencial",
+                50,
+                canvas.height / 2
+              );
               context.rotate(0.3);
               context.globalAlpha = 1;
             });
