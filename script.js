@@ -1,3 +1,13 @@
+/* ===== URL DE GOOGLE APPS SCRIPT ===== */
+const SHEET_URL = "PEGA_AQUÍ_TU_URL_DE_APPS_SCRIPT";
+
+/* ===== CONFIGURACIÓN PDF.js (OBLIGATORIA) ===== */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
+const urlPDF = "documento.pdf";
+
+/* ===== VALIDACIÓN + REGISTRO ===== */
 function validar() {
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
@@ -12,26 +22,52 @@ function validar() {
   const r2 = "5/4/08";
   const r3 = "El Mentalista";
 
+  /* ❌ CAMPOS INCOMPLETOS */
   if (!nombre || !correo || !p1 || !p2 || !p3) {
+    fetch(SHEET_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        nombre,
+        correo,
+        resultado: "❌ Campos incompletos"
+      })
+    });
+
     mensaje.innerText = "Debes completar todos los campos.";
     return;
   }
 
+  /* ✅ ACCESO PERMITIDO */
   if (p1 === r1 && p2 === r2 && p3 === r3) {
+    fetch(SHEET_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        nombre,
+        correo,
+        resultado: "✅ Acceso permitido"
+      })
+    });
+
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
     cargarPDF();
-  } else {
+
+  } 
+  /* ❌ ACCESO DENEGADO */
+  else {
+    fetch(SHEET_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        nombre,
+        correo,
+        resultado: "❌ Acceso denegado"
+      })
+    });
+
     mensaje.innerText =
       "Alguna respuesta es incorrecta. Revisa mayúsculas y formato.";
   }
 }
-
-/* ===== CONFIGURACIÓN PDF.js (OBLIGATORIA) ===== */
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-
-const urlPDF = "documento.pdf";
 
 /* ===== VISOR TIPO LIBRO ===== */
 function cargarPDF() {
@@ -69,7 +105,7 @@ function cargarPDF() {
         }
       }
 
-      // Pequeño delay para evitar bloqueos
+      // Delay para evitar bloqueos
       setTimeout(renderPar, 80);
     }
 
