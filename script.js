@@ -12,7 +12,7 @@ const urlPDF = "documento.pdf";
 const MAX_INTENTOS = 3;
 const BLOQUEO_MINUTOS = 10;
 
-/* ===== VARIABLES VISOR ===== */
+/* ===== VARIABLES ===== */
 let pdfDoc = null;
 let paginaActual = 1;
 
@@ -48,7 +48,7 @@ function validar() {
 
   if (estaBloqueado()) {
     mensaje.innerText =
-      "Acceso bloqueado por 10 minutos por intentos fallidos.";
+      "Acceso bloqueado por 10 minutos debido a intentos fallidos.";
     return;
   }
 
@@ -107,17 +107,14 @@ function cargarPDF() {
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
     pdfDoc = pdf;
     paginaActual = 1;
-    renderPagina("next");
-
-    setTimeout(() => {
-      cargando.classList.add("hidden");
-      document.getElementById("bienvenida").classList.add("hidden");
-    }, 600);
+    renderPagina();
+    cargando.classList.add("hidden");
+    document.getElementById("bienvenida").classList.add("hidden");
   });
 }
 
 /* ===== RENDER PÁGINA ===== */
-function renderPagina(direccion) {
+function renderPagina() {
   const contenedor = document.getElementById("pdf-viewer");
   contenedor.innerHTML = "";
 
@@ -135,10 +132,6 @@ function renderPagina(direccion) {
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
-    canvas.className = `pagina ${
-      direccion === "next" ? "flip-next" : "flip-prev"
-    }`;
-
     page.render({ canvasContext: ctx, viewport }).promise.then(() => {
       ctx.globalAlpha = 0.12;
       ctx.font = "40px Arial";
@@ -153,43 +146,41 @@ function renderPagina(direccion) {
   });
 }
 
-/* ===== CLICK SOLO EN PDF (PC) ===== */
-const visor = document.getElementById("pdf-viewer");
-
-visor.addEventListener("click", e => {
+/* ===== CLICK PC ===== */
+document.getElementById("pdf-viewer").addEventListener("click", e => {
   if (!pdfDoc) return;
 
-  const mitad = visor.clientWidth / 2;
+  const mitad = window.innerWidth / 2;
 
-  if (e.offsetX > mitad && paginaActual < pdfDoc.numPages) {
+  if (e.clientX > mitad && paginaActual < pdfDoc.numPages) {
     paginaActual++;
-    renderPagina("next");
-  } else if (e.offsetX <= mitad && paginaActual > 1) {
+    renderPagina();
+  } else if (e.clientX <= mitad && paginaActual > 1) {
     paginaActual--;
-    renderPagina("prev");
+    renderPagina();
   }
 });
 
-/* ===== SWIPE MÓVIL ===== */
-let inicioX = 0;
+/* ===== SWIPE TÁCTIL (MÓVIL) ===== */
+let touchInicioX = 0;
 
-visor.addEventListener("touchstart", e => {
-  inicioX = e.touches[0].clientX;
+document.getElementById("pdf-viewer").addEventListener("touchstart", e => {
+  touchInicioX = e.touches[0].clientX;
 });
 
-visor.addEventListener("touchend", e => {
+document.getElementById("pdf-viewer").addEventListener("touchend", e => {
   if (!pdfDoc) return;
 
-  const finX = e.changedTouches[0].clientX;
-  const diff = inicioX - finX;
+  const touchFinX = e.changedTouches[0].clientX;
+  const diff = touchInicioX - touchFinX;
 
-  if (Math.abs(diff) > 50) {
+  if (Math.abs(diff) > 40) {
     if (diff > 0 && paginaActual < pdfDoc.numPages) {
       paginaActual++;
-      renderPagina("next");
+      renderPagina();
     } else if (diff < 0 && paginaActual > 1) {
       paginaActual--;
-      renderPagina("prev");
+      renderPagina();
     }
   }
 });
