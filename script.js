@@ -1,5 +1,6 @@
 /* ===== URL DE GOOGLE APPS SCRIPT ===== */
-const SHEET_URL = "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
+const SHEET_URL =
+  "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
 
 /* ===== CONFIGURACIÓN PDF.js (OBLIGATORIA) ===== */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -24,64 +25,64 @@ function validar() {
 
   /* ❌ CAMPOS INCOMPLETOS */
   if (!nombre || !correo || !p1 || !p2 || !p3) {
-    fetch(SHEET_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        nombre,
-        correo,
-        resultado: "❌ Campos incompletos"
-      })
-    });
-
+    registrar(nombre, correo, "❌ Campos incompletos");
     mensaje.innerText = "Debes completar todos los campos.";
     return;
   }
 
   /* ✅ ACCESO PERMITIDO */
   if (p1 === r1 && p2 === r2 && p3 === r3) {
-    fetch(SHEET_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        nombre,
-        correo,
-        resultado: "✅ Acceso permitido"
-      })
-    });
+    registrar(nombre, correo, "✅ Acceso permitido");
 
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
-    cargarPDF();
 
-  } 
+    document.getElementById("bienvenida").innerText =
+      `Bienvenido/a ${nombre}`;
+
+    cargarPDF();
+  }
   /* ❌ ACCESO DENEGADO */
   else {
-    fetch(SHEET_URL, {
-      method: "POST",
-      body: JSON.stringify({
-        nombre,
-        correo,
-        resultado: "❌ Acceso denegado"
-      })
-    });
-
+    registrar(nombre, correo, "❌ Acceso denegado");
     mensaje.innerText =
       "Alguna respuesta es incorrecta. Revisa mayúsculas y formato.";
   }
 }
 
-/* ===== VISOR TIPO LIBRO ===== */
+/* ===== REGISTRO EN GOOGLE SHEETS ===== */
+function registrar(nombre, correo, resultado) {
+  fetch(SHEET_URL, {
+    method: "POST",
+    mode: "no-cors",
+    body: JSON.stringify({
+      nombre,
+      correo,
+      resultado
+    })
+  });
+}
+
+/* ===== VISOR PDF TIPO LIBRO ===== */
 function cargarPDF() {
   const contenedor = document.getElementById("pdf-viewer");
+  const cargando = document.getElementById("cargando");
+
   contenedor.innerHTML = "";
+  cargando.classList.remove("hidden");
 
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
     let paginaActual = 1;
 
-    function renderPar() {
-      if (paginaActual > pdf.numPages) return;
+    function renderPaginas() {
+      if (paginaActual > pdf.numPages) {
+        cargando.classList.add("hidden");
+        return;
+      }
 
-      // Renderiza 2 páginas por fila (libro)
-      for (let i = 0; i < 2; i++) {
+      const paginasPorFila = window.innerWidth > 900 ? 2 : 1;
+
+      for (let i = 0; i < paginasPorFila; i++) {
         if (paginaActual <= pdf.numPages) {
           pdf.getPage(paginaActual).then(page => {
             const escala = window.innerWidth > 900 ? 1.2 : 1.5;
@@ -93,27 +94,42 @@ function cargarPDF() {
             canvas.width = viewport.width;
             canvas.height = viewport.height;
 
-            contenedor.appendChild(canvas);
-
+            /* Marca de agua */
             page.render({
               canvasContext: context,
               viewport: viewport
+            }).promise.then(() => {
+              context.globalAlpha = 0.12;
+              context.font = "40px Arial";
+              context.fillStyle = "black";
+              context.rotate(-0.3);
+              context.fillText("Documento confidencial", 50, canvas.height / 2);
+              context.rotate(0.3);
+              context.globalAlpha = 1;
             });
+
+            contenedor.appendChild(canvas);
           });
 
           paginaActual++;
         }
       }
 
-      // Delay para evitar bloqueos
-      setTimeout(renderPar, 80);
+      setTimeout(renderPaginas, 100);
     }
 
-    renderPar();
+    renderPaginas();
   }).catch(err => {
+    cargando.classList.add("hidden");
     contenedor.innerHTML =
       "<p style='color:white;text-align:center'>Error cargando el documento</p>";
     console.error("Error cargando PDF:", err);
   });
 }
 
+/* ===== CERRAR DOCUMENTO ===== */
+function cerrarPDF() {
+  document.getElementById("pdf").classList.add("hidden");
+  document.getElementById("formulario").classList.remove("hidden");
+  document.getElementById("pdf-viewer").innerHTML = "";
+}
