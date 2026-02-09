@@ -12,9 +12,46 @@ const urlPDF = "documento.pdf";
 const MAX_INTENTOS = 3;
 const BLOQUEO_MINUTOS = 10;
 
+/* ===== CONFIG SESIÓN ===== */
+const DURACION_SESION = 24 * 60 * 60 * 1000; // 1 día
+
 /* ===== VARIABLES ===== */
 let pdfDoc = null;
 let paginaActual = 1;
+
+/* ===== VALIDAR CORREO ===== */
+function correoValido(correo) {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(correo);
+}
+
+/* ===== SESIÓN ===== */
+function guardarSesion(nombre, correo) {
+  localStorage.setItem(
+    "sesionDocumento",
+    JSON.stringify({
+      nombre,
+      correo,
+      expira: Date.now() + DURACION_SESION
+    })
+  );
+}
+
+function obtenerSesion() {
+  const sesion = localStorage.getItem("sesionDocumento");
+  if (!sesion) return null;
+
+  const datos = JSON.parse(sesion);
+  if (Date.now() > datos.expira) {
+    localStorage.removeItem("sesionDocumento");
+    return null;
+  }
+  return datos;
+}
+
+function cerrarSesion() {
+  localStorage.removeItem("sesionDocumento");
+}
 
 /* ===== BLOQUEO ===== */
 function estaBloqueado() {
@@ -68,11 +105,17 @@ function validar() {
     return;
   }
 
+  if (!correoValido(correo)) {
+    mensaje.innerText = "Ingresa un correo electrónico válido.";
+    return;
+  }
+
   if (p1 === r1 && p2 === r2 && p3 === r3) {
     registrar(nombre, correo, "✅ Acceso permitido");
 
     localStorage.removeItem("intentosFallidos");
     localStorage.removeItem("bloqueoHasta");
+    guardarSesion(nombre, correo);
 
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
@@ -151,7 +194,6 @@ document.getElementById("pdf-viewer").addEventListener("click", e => {
   if (!pdfDoc) return;
 
   const mitad = window.innerWidth / 2;
-
   if (e.clientX > mitad && paginaActual < pdfDoc.numPages) {
     paginaActual++;
     renderPagina();
@@ -161,7 +203,7 @@ document.getElementById("pdf-viewer").addEventListener("click", e => {
   }
 });
 
-/* ===== SWIPE TÁCTIL (MÓVIL) ===== */
+/* ===== SWIPE MÓVIL ===== */
 let touchInicioX = 0;
 
 document.getElementById("pdf-viewer").addEventListener("touchstart", e => {
@@ -171,24 +213,29 @@ document.getElementById("pdf-viewer").addEventListener("touchstart", e => {
 document.getElementById("pdf-viewer").addEventListener("touchend", e => {
   if (!pdfDoc) return;
 
-  const touchFinX = e.changedTouches[0].clientX;
-  const diff = touchInicioX - touchFinX;
-
+  const diff = touchInicioX - e.changedTouches[0].clientX;
   if (Math.abs(diff) > 40) {
-    if (diff > 0 && paginaActual < pdfDoc.numPages) {
-      paginaActual++;
-      renderPagina();
-    } else if (diff < 0 && paginaActual > 1) {
-      paginaActual--;
-      renderPagina();
-    }
+    if (diff > 0 && paginaActual < pdfDoc.numPages) paginaActual++;
+    if (diff < 0 && paginaActual > 1) paginaActual--;
+    renderPagina();
   }
 });
 
 /* ===== CERRAR PDF ===== */
 function cerrarPDF() {
+  cerrarSesion();
   document.getElementById("pdf").classList.add("hidden");
   document.getElementById("formulario").classList.remove("hidden");
   document.getElementById("pdf-viewer").innerHTML = "";
   pdfDoc = null;
 }
+
+/* ===== AUTOLOGIN ===== */
+window.addEventListener("load", () => {
+  const sesion = obtenerSesion();
+  if (sesion) {
+    document.getElementById("formulario").classList.add("hidden");
+    document.getElementById("pdf").classList.remove("hidden");
+    cargarPDF();
+  }
+});
