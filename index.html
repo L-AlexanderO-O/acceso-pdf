@@ -56,12 +56,30 @@
       z-index: 999;
     }
 
-    /* Modo libro */
+    /* CONTENEDOR DEL LIBRO */
     #pdf-viewer {
       display: grid;
-      grid-template-columns: repeat(2, auto);
       justify-content: center;
       gap: 30px;
+    }
+
+    /* 💻 PC: modo libro (2 páginas) */
+    @media (min-width: 901px) {
+      #pdf-viewer {
+        grid-template-columns: repeat(2, auto);
+      }
+    }
+
+    /* 📱 MÓVIL: una sola página */
+    @media (max-width: 900px) {
+      #pdf-viewer {
+        grid-template-columns: 1fr;
+      }
+
+      #pdf-viewer canvas {
+        max-width: 100%;
+        height: auto;
+      }
     }
 
     /* Páginas */
@@ -69,13 +87,6 @@
       background: white;
       box-shadow: 0 15px 35px rgba(0,0,0,0.6);
       border-radius: 6px;
-    }
-
-    /* 📱 MÓVIL: una página */
-    @media (max-width: 900px) {
-      #pdf-viewer {
-        grid-template-columns: 1fr;
-      }
     }
   </style>
 </head>
@@ -89,17 +100,17 @@
   <input type="email" id="correo" placeholder="Correo electrónico">
 
   <p><strong>Cantante favorito</strong><br>
-    <small>(Ambos nombres, con mayúscula ej. Leonel Rodriguez)</small>
+    <small>(Ambos nombres, con mayúscula ej. Damiano David)</small>
   </p>
   <input type="text" id="p1">
 
   <p><strong>Fecha de cumpleaños</strong><br>
-    <small>(Formato: 0/0/00 usando / y números ej. 9/10/06)</small>
+    <small>(Formato: 5/4/08 usando / y números)</small>
   </p>
   <input type="text" id="p2">
 
   <p><strong>Serie favorita</strong><br>
-    <small>(Nombre completo, con mayúscula ej. Breaking Bad)</small>
+    <small>(Nombre completo, con mayúscula ej. El Mentalista)</small>
   </p>
   <input type="text" id="p3">
 
