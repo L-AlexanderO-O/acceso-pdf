@@ -42,55 +42,75 @@
       color: #555;
     }
 
-    /* ===== PDF VIEWER ===== */
-    #pdf-viewer {
-      background: #1c1c1c;
-      padding: 40px;
-      border-radius: 12px;
-      margin-top: 20px;
+    /* ===== VISOR PDF PANTALLA COMPLETA ===== */
+    #pdf {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #111;
+      overflow-y: auto;
+      padding: 40px 20px;
+      box-sizing: border-box;
+      z-index: 999;
     }
 
-    canvas {
-      display: block;
-      margin: 0 auto 30px;
+    /* Modo libro */
+    #pdf-viewer {
+      display: grid;
+      grid-template-columns: repeat(2, auto);
+      justify-content: center;
+      gap: 30px;
+    }
+
+    /* Páginas */
+    #pdf-viewer canvas {
+      background: white;
       box-shadow: 0 15px 35px rgba(0,0,0,0.6);
       border-radius: 6px;
+    }
+
+    /* 📱 MÓVIL: una página */
+    @media (max-width: 900px) {
+      #pdf-viewer {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 
 <body>
 
-<div class="box">
+<div class="box" id="formulario">
   <h2>Acceso al documento</h2>
 
-  <div id="formulario">
-    <input type="text" id="nombre" placeholder="Nombre completo">
-    <input type="email" id="correo" placeholder="Correo electrónico">
+  <input type="text" id="nombre" placeholder="Nombre completo">
+  <input type="email" id="correo" placeholder="Correo electrónico">
 
-    <p><strong>Cantante favorito</strong><br>
-      <small>(Ambos nombres, con mayúscula ej. Leonel Rodriguez)</small>
-    </p>
-    <input type="text" id="p1">
+  <p><strong>Cantante favorito</strong><br>
+    <small>(Ambos nombres, con mayúscula ej. Leonel Rodriguez)</small>
+  </p>
+  <input type="text" id="p1">
 
-    <p><strong>Fecha de cumpleaños</strong><br>
-      <small>(Formato: 0/0/00 usando / ej. 9/12/07)</small>
-    </p>
-    <input type="text" id="p2">
+  <p><strong>Fecha de cumpleaños</strong><br>
+    <small>(Formato: 0/0/00 usando / y números ej. 9/10/06)</small>
+  </p>
+  <input type="text" id="p2">
 
-    <p><strong>Serie favorita</strong><br>
-      <small>(Nombre completo, con mayúscula ej. Breaking Bad)</small>
-    </p>
-    <input type="text" id="p3">
+  <p><strong>Serie favorita</strong><br>
+    <small>(Nombre completo, con mayúscula ej. Breaking Bad)</small>
+  </p>
+  <input type="text" id="p3">
 
-    <button onclick="validar()">Acceder</button>
-    <p class="error" id="mensaje"></p>
-  </div>
+  <button onclick="validar()">Acceder</button>
+  <p class="error" id="mensaje"></p>
+</div>
 
-  <div id="pdf" class="hidden">
-    <h3>Documento</h3>
-    <div id="pdf-viewer"></div>
-  </div>
+<!-- VISOR PDF -->
+<div id="pdf" class="hidden">
+  <div id="pdf-viewer"></div>
+</div>
 
 <!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
@@ -100,4 +120,3 @@
 
 </body>
 </html>
-
