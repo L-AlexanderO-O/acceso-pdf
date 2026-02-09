@@ -1,5 +1,5 @@
 /* ===== URL DE GOOGLE APPS SCRIPT ===== */
-const SHEET_URL = "PEGA_AQUÍ_TU_URL_DE_APPS_SCRIPT";
+const SHEET_URL = "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
 
 /* ===== CONFIGURACIÓN PDF.js (OBLIGATORIA) ===== */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -116,3 +116,4 @@ function cargarPDF() {
     console.error("Error cargando PDF:", err);
   });
 }
+
