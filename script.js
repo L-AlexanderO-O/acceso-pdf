@@ -2,7 +2,7 @@
 const SHEET_URL =
   "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
 
-/* ===== CONFIGURACIÓN PDF.js (OBLIGATORIA) ===== */
+/* ===== CONFIGURACIÓN PDF.js ===== */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
@@ -16,7 +16,7 @@ const BLOQUEO_MINUTOS = 10;
 let pdfDoc = null;
 let paginaActual = 1;
 
-/* ===== FUNCIONES BLOQUEO ===== */
+/* ===== BLOQUEO ===== */
 function estaBloqueado() {
   const bloqueoHasta = localStorage.getItem("bloqueoHasta");
   if (!bloqueoHasta) return false;
@@ -40,12 +40,12 @@ function registrarFallo() {
   }
 }
 
-/* ===== VALIDACIÓN + REGISTRO ===== */
+/* ===== VALIDACIÓN ===== */
 function validar() {
 
   if (estaBloqueado()) {
     document.getElementById("mensaje").innerText =
-      "Acceso bloqueado por 10 minutos debido a varios intentos fallidos.";
+      "Acceso bloqueado por 10 minutos por varios intentos fallidos.";
     return;
   }
 
@@ -74,9 +74,7 @@ function validar() {
 
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
-
-    document.getElementById("bienvenida").innerText =
-      `Bienvenido/a ${nombre}`;
+    document.getElementById("bienvenida").innerText = `Bienvenido/a ${nombre}`;
 
     cargarPDF();
   } else {
@@ -87,7 +85,7 @@ function validar() {
   }
 }
 
-/* ===== REGISTRO EN GOOGLE SHEETS ===== */
+/* ===== REGISTRO GOOGLE SHEETS ===== */
 function registrar(nombre, correo, resultado) {
   fetch(SHEET_URL, {
     method: "POST",
@@ -96,7 +94,7 @@ function registrar(nombre, correo, resultado) {
   });
 }
 
-/* ===== CARGA PDF (UNA SOLA PÁGINA) ===== */
+/* ===== CARGA PDF ===== */
 function cargarPDF() {
   const contenedor = document.getElementById("pdf-viewer");
   const cargando = document.getElementById("cargando");
@@ -112,41 +110,46 @@ function cargarPDF() {
   });
 }
 
+/* ===== RENDER PÁGINA (FULL SCREEN) ===== */
 function renderPagina() {
   const contenedor = document.getElementById("pdf-viewer");
   contenedor.innerHTML = "";
 
   pdfDoc.getPage(paginaActual).then(page => {
+
     const viewportBase = page.getViewport({ scale: 1 });
+
     const escala = Math.min(
       window.innerWidth / viewportBase.width,
       window.innerHeight / viewportBase.height
     );
 
     const viewport = page.getViewport({ scale: escala });
+
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
-    page.render({ canvasContext: context, viewport }).promise.then(() => {
-      context.globalAlpha = 0.12;
-      context.font = "40px Arial";
-      context.fillStyle = "black";
-      context.rotate(-0.3);
-      context.fillText("Documento confidencial", 50, canvas.height / 2);
-      context.rotate(0.3);
-      context.globalAlpha = 1;
+    page.render({ canvasContext: ctx, viewport }).promise.then(() => {
+      /* Marca de agua */
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      ctx.font = "40px Arial";
+      ctx.fillStyle = "black";
+      ctx.rotate(-0.3);
+      ctx.fillText("Documento confidencial", 50, canvas.height / 2);
+      ctx.restore();
     });
 
     contenedor.appendChild(canvas);
   });
 }
 
-/* ===== NAVEGACIÓN POR CLIC (PC) ===== */
-document.addEventListener("click", e => {
-  if (!pdfDoc || document.getElementById("pdf").classList.contains("hidden")) return;
+/* ===== NAVEGACIÓN POR CLIC (SOLO DENTRO DEL VISOR) ===== */
+document.getElementById("pdf-viewer").addEventListener("click", e => {
+  if (!pdfDoc) return;
 
   const mitad = window.innerWidth / 2;
 
@@ -159,14 +162,14 @@ document.addEventListener("click", e => {
   }
 });
 
-/* ===== SWIPE PARA MÓVIL ===== */
+/* ===== SWIPE MÓVIL ===== */
 let inicioX = 0;
 
-document.addEventListener("touchstart", e => {
+document.getElementById("pdf-viewer").addEventListener("touchstart", e => {
   inicioX = e.touches[0].clientX;
 });
 
-document.addEventListener("touchend", e => {
+document.getElementById("pdf-viewer").addEventListener("touchend", e => {
   if (!pdfDoc) return;
 
   const finX = e.changedTouches[0].clientX;
@@ -183,7 +186,7 @@ document.addEventListener("touchend", e => {
   }
 });
 
-/* ===== CERRAR DOCUMENTO ===== */
+/* ===== CERRAR ===== */
 function cerrarPDF() {
   document.getElementById("pdf").classList.add("hidden");
   document.getElementById("formulario").classList.remove("hidden");
