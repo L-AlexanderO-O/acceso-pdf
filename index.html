@@ -53,7 +53,6 @@
 
     small { color: #555; }
 
-    /* ===== VISOR PDF ===== */
     #pdf {
       position: fixed;
       inset: 0;
@@ -132,10 +131,10 @@
 <div class="box" id="formulario">
   <h2>Acceso al documento</h2>
 
-  <!-- DATOS DEL USUARIO -->
   <h3>🧑‍💼 Tus datos</h3>
   <small>
-    Esta información se utiliza únicamente para registrar el acceso al documento.
+    Esta información corresponde a la persona que solicita el acceso
+    y se utiliza únicamente para un registro en el documento.
   </small>
 
   <input type="text" id="nombre" placeholder="Tu nombre completo">
@@ -143,36 +142,39 @@
 
   <hr>
 
-  <!-- PREGUNTAS PRINCIPALES -->
   <h3>✍️ Sobre el autor</h3>
+  <small>
+    Las siguientes preguntas hacen referencia al autor del documento.
+    No responden a tus gustos personales.
+  </small>
 
-  <p>
-    <strong>Cantante favorito del autor</strong><br>
-    <small>
-      Contestar con mayúsculas el nombre completo. Ej: Patrick Jane
-    </small>
-  </p>
+ <p>
+  <strong>Cantante favorito del autor</strong><br>
+  <small>
+    Contestar con mayúsculas el nombre completo. Ej: Patrick Jane
+  </small>
+</p>
   <input type="text" id="p1">
 
   <p>
-    <strong>Fecha de cumpleaños del autor</strong><br>
-    <small>
-      El formato es 0/0/00, usa números y la barra (/). Ej: 9/10/07
-    </small>
-  </p>
+  <strong>Fecha de cumpleaños del autor</strong><br>
+  <small>
+    El formato es 0/0/00, usa números y la barra (/). Ej: 9/10/07
+  </small>
+</p>
   <input type="text" id="p2">
 
   <p>
-    <strong>Serie favorita del autor</strong><br>
-    <small>
-      Nombre en mayúsculas y completo. Ej: Braking Bad
-    </small>
-  </p>
+  <strong>Serie favorita del autor</strong><br>
+  <small>
+    Nombre en mayúsculas y completo. Ej: Braking Bad
+  </small>
+</p>
   <input type="text" id="p3">
 
   <hr>
 
-  <!-- PREGUNTAS DE SELECCIÓN -->
+  <!-- 🔥 PREGUNTAS PSICOLÓGICAS -->
   <h3>🧠 Preguntas adicionales</h3>
 
   <p>
@@ -212,11 +214,9 @@
   <div id="pdf-viewer"></div>
 </div>
 
-<!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-
-<!-- Script principal -->
 <script src="script.js"></script>
 
 </body>
 </html>
+
