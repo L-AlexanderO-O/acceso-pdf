@@ -27,10 +27,7 @@ function correoValido(correo) {
 
 /* ===== NORMALIZAR TEXTO ===== */
 function normalizarTexto(texto) {
-  return texto
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
+  return texto.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 /* ===== SESIÓN ===== */
@@ -100,7 +97,48 @@ function registrarFallo() {
   }
 }
 
-/* ===== VALIDACIÓN ===== */
+/* ===== PREGUNTAS SELECCIÓN MÚLTIPLE (MENSAJES) ===== */
+function verificarP4() {
+  const valor = document.getElementById("p4").value;
+  const msg = document.getElementById("msg-p4");
+
+  msg.style.fontWeight = "bold";
+
+  if (!valor) {
+    msg.innerText = "";
+    return;
+  }
+
+  if (valor === "si") {
+    msg.innerText = "Idiota";
+    msg.style.color = "red";
+  } else {
+    msg.innerText = "Cobarde";
+    msg.style.color = "orange";
+  }
+}
+
+function verificarP5() {
+  const valor = document.getElementById("p5").value;
+  const msg = document.getElementById("msg-p5");
+
+  msg.style.fontWeight = "bold";
+
+  if (!valor) {
+    msg.innerText = "";
+    return;
+  }
+
+  if (valor === "si") {
+    msg.innerText = "No... no me conoces";
+    msg.style.color = "red";
+  } else {
+    msg.innerText = "Pues lo harás";
+    msg.style.color = "green";
+  }
+}
+
+/* ===== VALIDACIÓN PRINCIPAL ===== */
 function validar() {
   const mensaje = document.getElementById("mensaje");
 
