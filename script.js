@@ -152,18 +152,21 @@ function validar() {
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
   const p1 = document.getElementById("p1").value.trim();
-  const p2 = document.getElementById("p2").value.trim();
-  const p3 = document.getElementById("p3").value.trim();
+const p2 = document.getElementById("p2").value.trim();
+const p3 = document.getElementById("p3").value.trim();
+const p4 = document.getElementById("p4").value;
+const p5 = document.getElementById("p5").value;
 
   const r1 = "Damiano David";
   const r2 = "5/4/08";
   const r3 = "El Mentalista";
 
-  if (!nombre || !correo || !p1 || !p2 || !p3) {
-    registrar(nombre, correo, "❌ Campos incompletos");
-    mensaje.innerText = "Debes completar todos los campos.";
-    return;
-  }
+  if (!nombre || !correo || !p1 || !p2 || !p3 || !p4 || !p5) {
+  registrar(nombre, correo, "❌ Campos incompletos");
+  mensaje.innerText =
+    "Debes completar todos los campos, incluidas las preguntas de selección.";
+  return;
+}
 
   if (!correoValido(correo)) {
     mensaje.innerText = "Ingresa un correo electrónico válido.";
@@ -303,3 +306,4 @@ window.addEventListener("load", () => {
     cargarPDF();
   }
 });
+
