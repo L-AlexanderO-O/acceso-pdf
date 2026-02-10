@@ -15,7 +15,7 @@ const BLOQUEO_MINUTOS = 10;
 /* ===== CONFIG SESIÓN ===== */
 const DURACION_SESION = 24 * 60 * 60 * 1000; // 1 día
 
-/* ===== VARIABLES PDF ===== */
+/* ===== VARIABLES ===== */
 let pdfDoc = null;
 let paginaActual = 1;
 
@@ -79,27 +79,7 @@ function registrarFallo() {
   }
 }
 
-/* ===== PREGUNTA REFLEXIVA ===== */
-function verificarPregunta1() {
-  const seleccion = document.querySelector('input[name="q1"]:checked');
-  const salida = document.getElementById("respuesta-q1");
-
-  if (!seleccion) {
-    salida.innerText = "Debes elegir una opción.";
-    salida.style.color = "red";
-    return;
-  }
-
-  if (seleccion.value === "si") {
-    salida.innerText = "Idiota";
-    salida.style.color = "black";
-  } else {
-    salida.innerText = "Cobarde";
-    salida.style.color = "black";
-  }
-}
-
-/* ===== VALIDACIÓN PRINCIPAL ===== */
+/* ===== VALIDACIÓN ===== */
 function validar() {
   const mensaje = document.getElementById("mensaje");
 
@@ -114,8 +94,6 @@ function validar() {
   const p1 = document.getElementById("p1").value.trim();
   const p2 = document.getElementById("p2").value.trim();
   const p3 = document.getElementById("p3").value.trim();
-
-  const conoceAutor = document.querySelector('input[name="q2"]:checked');
 
   const r1 = "Damiano David";
   const r2 = "5/4/08";
@@ -132,11 +110,6 @@ function validar() {
     return;
   }
 
-  if (!conoceAutor) {
-    mensaje.innerText = "Responde la última pregunta.";
-    return;
-  }
-
   if (p1 === r1 && p2 === r2 && p3 === r3) {
     registrar(nombre, correo, "✅ Acceso permitido");
 
@@ -144,37 +117,20 @@ function validar() {
     localStorage.removeItem("bloqueoHasta");
     guardarSesion(nombre, correo);
 
-    mostrarPantallaNegra(conoceAutor.value, () => {
-      document.getElementById("formulario").classList.add("hidden");
-      document.getElementById("pdf").classList.remove("hidden");
-      cargarPDF();
-    });
+    document.getElementById("formulario").classList.add("hidden");
+    document.getElementById("pdf").classList.remove("hidden");
 
+    document.getElementById("bienvenida").innerText =
+      `Bienvenido/a ${nombre}`;
+    document.getElementById("bienvenida").classList.remove("hidden");
+
+    cargarPDF();
   } else {
     registrarFallo();
     registrar(nombre, correo, "❌ Acceso denegado");
     mensaje.innerText =
       "Respuesta incorrecta. Tras 3 intentos se bloqueará.";
   }
-}
-
-/* ===== PANTALLA NEGRA FINAL ===== */
-function mostrarPantallaNegra(respuesta, callback) {
-  const pantalla = document.getElementById("pantalla-negra");
-  const texto = document.getElementById("mensaje-final");
-
-  if (respuesta === "si") {
-    texto.innerText = "No... No me conoces.";
-  } else {
-    texto.innerText = "No me conoces, pero lo harás...";
-  }
-
-  pantalla.classList.remove("hidden");
-
-  setTimeout(() => {
-    pantalla.classList.add("hidden");
-    callback();
-  }, 2500);
 }
 
 /* ===== REGISTRO GOOGLE SHEETS ===== */
@@ -196,10 +152,11 @@ function cargarPDF() {
     paginaActual = 1;
     renderPagina();
     cargando.classList.add("hidden");
+    document.getElementById("bienvenida").classList.add("hidden");
   });
 }
 
-/* ===== RENDER PDF ===== */
+/* ===== RENDER PÁGINA ===== */
 function renderPagina() {
   const contenedor = document.getElementById("pdf-viewer");
   contenedor.innerHTML = "";
@@ -235,12 +192,15 @@ function renderPagina() {
 /* ===== CLICK PC ===== */
 document.getElementById("pdf-viewer").addEventListener("click", e => {
   if (!pdfDoc) return;
-  if (e.clientX > window.innerWidth / 2 && paginaActual < pdfDoc.numPages) {
+
+  const mitad = window.innerWidth / 2;
+  if (e.clientX > mitad && paginaActual < pdfDoc.numPages) {
     paginaActual++;
-  } else if (paginaActual > 1) {
+    renderPagina();
+  } else if (e.clientX <= mitad && paginaActual > 1) {
     paginaActual--;
+    renderPagina();
   }
-  renderPagina();
 });
 
 /* ===== SWIPE MÓVIL ===== */
@@ -252,6 +212,7 @@ document.getElementById("pdf-viewer").addEventListener("touchstart", e => {
 
 document.getElementById("pdf-viewer").addEventListener("touchend", e => {
   if (!pdfDoc) return;
+
   const diff = touchInicioX - e.changedTouches[0].clientX;
   if (Math.abs(diff) > 40) {
     if (diff > 0 && paginaActual < pdfDoc.numPages) paginaActual++;
@@ -272,15 +233,9 @@ function cerrarPDF() {
 /* ===== AUTOLOGIN ===== */
 window.addEventListener("load", () => {
   const sesion = obtenerSesion();
-
-  if (sesion && document.getElementById("pdf")) {
+  if (sesion) {
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
     cargarPDF();
-  } else {
-    document.getElementById("formulario").classList.remove("hidden");
-    document.getElementById("pdf").classList.add("hidden");
   }
 });
-
-
