@@ -265,26 +265,36 @@ function renderPagina() {
     canvas.height = viewport.height;
 
     page.render({ canvasContext: ctx, viewport }).promise.then(() => {
-      // Marca de agua diagonal
-      const texto = "DOCUMENTO CONFIDENCIAL";
+      // ===== MARCA DE AGUA PERSONALIZADA =====
+      const sesion = obtenerSesion();
+      const nombreUsuario = sesion?.nombre || "INVITADO";
+
       ctx.save();
       ctx.globalAlpha = 0.15;
       ctx.fillStyle = "black";
-      ctx.font = "bold 40px Arial";
+      ctx.textAlign = "center";
+
+      // Nombre del usuario grande y diagonal
+      ctx.font = "bold 36px Arial";
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate(-0.35);
-      ctx.textAlign = "center";
-      ctx.fillText(texto, 0, 0);
+      ctx.fillText(nombreUsuario.toUpperCase(), 0, 0);
+
+      // Texto "Documento confidencial" más pequeño debajo
+      ctx.font = "bold 24px Arial";
+      ctx.fillText("DOCUMENTO CONFIDENCIAL", 0, 50);
+
       ctx.restore();
 
       renderizando = false;
     });
 
     contenedor.appendChild(canvas);
-    guardarSesion(
-      obtenerSesion()?.nombre || "Invitado",
-      obtenerSesion()?.correo || ""
-    );
+
+    // Guardar la página actual y el nombre del usuario
+    if (sesion) {
+      guardarSesion(nombreUsuario, sesion.correo);
+    }
   });
 }
 
@@ -341,3 +351,4 @@ window.addEventListener("load", () => {
 
   if (estaBloqueado()) iniciarContadorBloqueo();
 });
+
