@@ -287,6 +287,12 @@ function renderPagina() {
       if (sesion) guardarSesion(nombreUsuario, sesion.correo);
     });
 
+    // ===== ACTUALIZAR CONTADOR DE PÁGINAS =====
+const contador = document.getElementById("contador-pagina");
+if (contador && pdfDoc) {
+  contador.innerText = `Página ${paginaActual} / ${pdfDoc.numPages}`;
+}
+
     contenedor.appendChild(canvas);
   });
 }
@@ -344,5 +350,6 @@ window.addEventListener("load", () => {
 
   if (estaBloqueado()) iniciarContadorBloqueo();
 });
+
 
 
