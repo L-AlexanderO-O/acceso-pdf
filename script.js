@@ -1,33 +1,25 @@
-/* ===== URL DE GOOGLE APPS SCRIPT ===== */
+/* ===== CONFIG ===== */
 const SHEET_URL =
   "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
 
-/* ===== CONFIGURACIÓN PDF.js ===== */
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
 const urlPDF = "documento.pdf";
-
-/* ===== CONFIG BLOQUEO ===== */
 const MAX_INTENTOS = 3;
 const BLOQUEO_MINUTOS = 10;
-
-/* ===== CONFIG SESIÓN ===== */
 const DURACION_SESION = 24 * 60 * 60 * 1000;
 
-/* ===== VARIABLES ===== */
 let pdfDoc = null;
 let paginaActual = 1;
 
-/* ===== VALIDAR CORREO ===== */
-function correoValido(correo) {
-  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return regex.test(correo);
+/* ===== UTILIDADES ===== */
+function correoValido(c) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c);
 }
 
-/* ===== NORMALIZAR TEXTO ===== */
-function normalizarTexto(texto) {
-  return texto.trim().toLowerCase().replace(/\s+/g, " ");
+function normalizarTexto(t) {
+  return t.trim().toLowerCase().replace(/\s+/g, " ");
 }
 
 /* ===== SESIÓN ===== */
@@ -43,15 +35,14 @@ function guardarSesion(nombre, correo) {
 }
 
 function obtenerSesion() {
-  const sesion = localStorage.getItem("sesionDocumento");
-  if (!sesion) return null;
-
-  const datos = JSON.parse(sesion);
-  if (Date.now() > datos.expira) {
+  const s = localStorage.getItem("sesionDocumento");
+  if (!s) return null;
+  const d = JSON.parse(s);
+  if (Date.now() > d.expira) {
     localStorage.removeItem("sesionDocumento");
     return null;
   }
-  return datos;
+  return d;
 }
 
 function cerrarSesion() {
@@ -60,10 +51,9 @@ function cerrarSesion() {
 
 /* ===== BLOQUEO ===== */
 function estaBloqueado() {
-  const hasta = localStorage.getItem("bloqueoHasta");
-  if (!hasta) return false;
-
-  if (Date.now() > Number(hasta)) {
+  const h = localStorage.getItem("bloqueoHasta");
+  if (!h) return false;
+  if (Date.now() > Number(h)) {
     localStorage.removeItem("bloqueoHasta");
     localStorage.removeItem("intentosFallidos");
     return false;
@@ -71,93 +61,62 @@ function estaBloqueado() {
   return true;
 }
 
-function tiempoRestanteBloqueo() {
-  const hasta = localStorage.getItem("bloqueoHasta");
-  if (!hasta) return null;
-
-  const restanteMs = Number(hasta) - Date.now();
-  if (restanteMs <= 0) return null;
-
-  return {
-    minutos: Math.floor(restanteMs / 60000),
-    segundos: Math.floor((restanteMs % 60000) / 1000)
-  };
-}
-
 function registrarFallo() {
-  let intentos = Number(localStorage.getItem("intentosFallidos")) || 0;
-  intentos++;
-  localStorage.setItem("intentosFallidos", intentos);
-
-  if (intentos >= MAX_INTENTOS) {
+  let i = Number(localStorage.getItem("intentosFallidos")) || 0;
+  i++;
+  localStorage.setItem("intentosFallidos", i);
+  if (i >= MAX_INTENTOS) {
     localStorage.setItem(
       "bloqueoHasta",
-      Date.now() + BLOQUEO_MINUTOS * 60 * 1000
+      Date.now() + BLOQUEO_MINUTOS * 60000
     );
   }
 }
 
-/* ===== SELECCIÓN MÚLTIPLE ===== */
+/* ===== MENSAJES SELECT ===== */
 function verificarP4() {
-  const valor = document.getElementById("p4").value;
-  const msg = document.getElementById("msg-p4");
-
-  msg.style.fontWeight = "bold";
-  msg.innerText = valor === "si" ? "Idiota" : valor === "no" ? "Cobarde" : "";
-  msg.style.color = valor === "si" ? "red" : "orange";
+  const v = p4.value;
+  msg_p4.innerText = v === "si" ? "Idiota" : v === "no" ? "Cobarde" : "";
+  msg_p4.style.color = v === "si" ? "red" : "orange";
 }
 
 function verificarP5() {
-  const valor = document.getElementById("p5").value;
-  const msg = document.getElementById("msg-p5");
-
-  msg.style.fontWeight = "bold";
-  msg.innerText =
-    valor === "si"
-      ? "No... no me conoces"
-      : valor === "no"
-      ? "Pues lo harás"
-      : "";
-  msg.style.color = valor === "si" ? "red" : "green";
+  const v = p5.value;
+  msg_p5.innerText =
+    v === "si" ? "No... no me conoces" : v === "no" ? "Pues lo harás" : "";
+  msg_p5.style.color = v === "si" ? "red" : "green";
 }
 
-/* ===== VALIDACIÓN ===== */
+/* ===== VALIDAR ===== */
 function validar() {
-  const mensaje = document.getElementById("mensaje");
-
   if (estaBloqueado()) {
-    const t = tiempoRestanteBloqueo();
-    mensaje.innerText = `Acceso bloqueado. Intenta en ${t.minutos} min ${t.segundos} s.`;
+    mensaje.innerText = "Acceso bloqueado temporalmente.";
     return;
   }
 
-  const nombre = document.getElementById("nombre").value.trim();
-  const correo = document.getElementById("correo").value.trim();
-  const p1 = document.getElementById("p1").value.trim();
-  const p2 = document.getElementById("p2").value.trim();
-  const p3 = document.getElementById("p3").value.trim();
-  const p4 = document.getElementById("p4").value;
-  const p5 = document.getElementById("p5").value;
+  const nombre = nombre_i.value.trim();
+  const correo = correo_i.value.trim();
 
-  if (!nombre || !correo || !p1 || !p2 || !p3 || !p4 || !p5) {
-    mensaje.innerText =
-      "Debes completar todos los campos, incluidas las preguntas de selección.";
+  if (!nombre || !correo || !p1.value || !p2.value || !p3.value || !p4.value || !p5.value) {
+    mensaje.innerText = "Completa TODOS los campos.";
     return;
   }
 
   if (!correoValido(correo)) {
-    mensaje.innerText = "Correo electrónico inválido.";
+    mensaje.innerText = "Correo inválido.";
     return;
   }
 
   if (
-    normalizarTexto(p1) === normalizarTexto("Damiano David") &&
-    p2 === "5/4/08" &&
-    normalizarTexto(p3) === normalizarTexto("El Mentalista")
+    normalizarTexto(p1.value) === normalizarTexto("Damiano David") &&
+    p2.value === "5/4/08" &&
+    normalizarTexto(p3.value) === normalizarTexto("El Mentalista")
   ) {
     guardarSesion(nombre, correo);
-    document.getElementById("formulario").classList.add("hidden");
-    document.getElementById("pdf").classList.remove("hidden");
+    formulario.classList.add("hidden");
+    pdf.classList.remove("hidden");
+    bienvenida.innerText = `Bienvenido, ${nombre}`;
+    bienvenida.classList.remove("hidden");
     cargarPDF();
   } else {
     registrarFallo();
@@ -167,31 +126,62 @@ function validar() {
 
 /* ===== PDF ===== */
 function cargarPDF() {
+  cargando.classList.remove("hidden");
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
     pdfDoc = pdf;
-    paginaActual =
-      Number(localStorage.getItem("ultimaPaginaDocumento")) || 1;
+    paginaActual = Number(localStorage.getItem("ultimaPaginaDocumento")) || 1;
     renderPagina();
+    cargando.classList.add("hidden");
   });
 }
 
 function renderPagina() {
-  const contenedor = document.getElementById("pdf-viewer");
-  contenedor.innerHTML = "";
-
+  pdf_viewer.innerHTML = "";
   pdfDoc.getPage(paginaActual).then(page => {
-    const viewport = page.getViewport({ scale: 1.5 });
+    const viewport = page.getViewport({ scale: 1.3 });
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
-
     canvas.width = viewport.width;
     canvas.height = viewport.height;
-
     page.render({ canvasContext: ctx, viewport });
-    contenedor.appendChild(canvas);
+    pdf_viewer.appendChild(canvas);
   });
 }
 
 function guardarPaginaActual() {
   localStorage.setItem("ultimaPaginaDocumento", paginaActual);
 }
+
+function paginaSiguiente() {
+  if (paginaActual < pdfDoc.numPages) {
+    paginaActual++;
+    guardarPaginaActual();
+    renderPagina();
+  }
+}
+
+function paginaAnterior() {
+  if (paginaActual > 1) {
+    paginaActual--;
+    guardarPaginaActual();
+    renderPagina();
+  }
+}
+
+function cerrarPDF() {
+  guardarPaginaActual();
+  cerrarSesion();
+  location.reload();
+}
+
+/* ===== AUTOLOGIN ===== */
+window.onload = () => {
+  const s = obtenerSesion();
+  if (s) {
+    formulario.classList.add("hidden");
+    pdf.classList.remove("hidden");
+    bienvenida.innerText = `Bienvenido, ${s.nombre}`;
+    bienvenida.classList.remove("hidden");
+    cargarPDF();
+  }
+};
