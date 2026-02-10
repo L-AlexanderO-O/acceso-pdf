@@ -272,9 +272,15 @@ function cerrarPDF() {
 /* ===== AUTOLOGIN ===== */
 window.addEventListener("load", () => {
   const sesion = obtenerSesion();
-  if (sesion) {
+
+  if (sesion && document.getElementById("pdf")) {
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
     cargarPDF();
+  } else {
+    document.getElementById("formulario").classList.remove("hidden");
+    document.getElementById("pdf").classList.add("hidden");
   }
 });
+
+
