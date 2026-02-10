@@ -25,6 +25,14 @@ function correoValido(correo) {
   return regex.test(correo);
 }
 
+/* ===== NORMALIZAR TEXTO ===== */
+function normalizarTexto(texto) {
+  return texto
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
 /* ===== SESIÓN ===== */
 function guardarSesion(nombre, correo) {
   localStorage.setItem(
@@ -66,6 +74,19 @@ function estaBloqueado() {
   return true;
 }
 
+function tiempoRestanteBloqueo() {
+  const hasta = localStorage.getItem("bloqueoHasta");
+  if (!hasta) return null;
+
+  const restanteMs = Number(hasta) - Date.now();
+  if (restanteMs <= 0) return null;
+
+  const minutos = Math.floor(restanteMs / 60000);
+  const segundos = Math.floor((restanteMs % 60000) / 1000);
+
+  return { minutos, segundos };
+}
+
 function registrarFallo() {
   let intentos = Number(localStorage.getItem("intentosFallidos")) || 0;
   intentos++;
@@ -84,8 +105,9 @@ function validar() {
   const mensaje = document.getElementById("mensaje");
 
   if (estaBloqueado()) {
+    const tiempo = tiempoRestanteBloqueo();
     mensaje.innerText =
-      "Acceso bloqueado por 10 minutos debido a intentos fallidos.";
+      `Acceso bloqueado. Intenta nuevamente en ${tiempo.minutos} min ${tiempo.segundos} s.`;
     return;
   }
 
@@ -110,7 +132,11 @@ function validar() {
     return;
   }
 
-  if (p1 === r1 && p2 === r2 && p3 === r3) {
+  if (
+    normalizarTexto(p1) === normalizarTexto(r1) &&
+    p2 === r2 &&
+    normalizarTexto(p3) === normalizarTexto(r3)
+  ) {
     registrar(nombre, correo, "✅ Acceso permitido");
 
     localStorage.removeItem("intentosFallidos");
