@@ -18,6 +18,8 @@ const DURACION_SESION = 24 * 60 * 60 * 1000; // 1 día
 /* ===== VARIABLES ===== */
 let pdfDoc = null;
 let paginaActual = 1;
+let renderizando = false;
+let bloqueoInterval = null;
 
 /* ===== VALIDAR CORREO ===== */
 function correoValido(correo) {
@@ -37,6 +39,7 @@ function guardarSesion(nombre, correo) {
     JSON.stringify({
       nombre,
       correo,
+      pagina: paginaActual,
       expira: Date.now() + DURACION_SESION
     })
   );
@@ -66,6 +69,7 @@ function estaBloqueado() {
   if (Date.now() > Number(hasta)) {
     localStorage.removeItem("bloqueoHasta");
     localStorage.removeItem("intentosFallidos");
+    clearInterval(bloqueoInterval);
     return false;
   }
   return true;
@@ -80,8 +84,23 @@ function tiempoRestanteBloqueo() {
 
   const minutos = Math.floor(restanteMs / 60000);
   const segundos = Math.floor((restanteMs % 60000) / 1000);
-
   return { minutos, segundos };
+}
+
+function iniciarContadorBloqueo() {
+  const mensaje = document.getElementById("mensaje");
+
+  if (bloqueoInterval) clearInterval(bloqueoInterval);
+
+  bloqueoInterval = setInterval(() => {
+    const tiempo = tiempoRestanteBloqueo();
+    if (!tiempo) {
+      clearInterval(bloqueoInterval);
+      mensaje.innerText = "";
+    } else {
+      mensaje.innerText = `Acceso bloqueado. Intenta nuevamente en ${tiempo.minutos} min ${tiempo.segundos} s.`;
+    }
+  }, 1000);
 }
 
 function registrarFallo() {
@@ -94,6 +113,7 @@ function registrarFallo() {
       "bloqueoHasta",
       Date.now() + BLOQUEO_MINUTOS * 60 * 1000
     );
+    iniciarContadorBloqueo();
   }
 }
 
@@ -143,30 +163,28 @@ function validar() {
   const mensaje = document.getElementById("mensaje");
 
   if (estaBloqueado()) {
-    const tiempo = tiempoRestanteBloqueo();
-    mensaje.innerText =
-      `Acceso bloqueado. Intenta nuevamente en ${tiempo.minutos} min ${tiempo.segundos} s.`;
+    iniciarContadorBloqueo();
     return;
   }
 
   const nombre = document.getElementById("nombre").value.trim();
   const correo = document.getElementById("correo").value.trim();
   const p1 = document.getElementById("p1").value.trim();
-const p2 = document.getElementById("p2").value.trim();
-const p3 = document.getElementById("p3").value.trim();
-const p4 = document.getElementById("p4").value;
-const p5 = document.getElementById("p5").value;
+  const p2 = document.getElementById("p2").value.trim();
+  const p3 = document.getElementById("p3").value.trim();
+  const p4 = document.getElementById("p4").value;
+  const p5 = document.getElementById("p5").value;
 
   const r1 = "Damiano David";
   const r2 = "5/4/08";
   const r3 = "El Mentalista";
 
   if (!nombre || !correo || !p1 || !p2 || !p3 || !p4 || !p5) {
-  registrar(nombre, correo, "❌ Campos incompletos");
-  mensaje.innerText =
-    "Debes completar todos los campos, incluidas las preguntas de selección.";
-  return;
-}
+    registrar(nombre, correo, "❌ Campos incompletos");
+    mensaje.innerText =
+      "Debes completar todos los campos, incluidas las preguntas de selección.";
+    return;
+  }
 
   if (!correoValido(correo)) {
     mensaje.innerText = "Ingresa un correo electrónico válido.";
@@ -187,8 +205,7 @@ const p5 = document.getElementById("p5").value;
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
 
-    document.getElementById("bienvenida").innerText =
-      `Bienvenido/a ${nombre}`;
+    document.getElementById("bienvenida").innerText = `Bienvenido/a ${nombre}`;
     document.getElementById("bienvenida").classList.remove("hidden");
 
     cargarPDF();
@@ -214,17 +231,22 @@ function cargarPDF() {
   const cargando = document.getElementById("cargando");
   cargando.classList.remove("hidden");
 
+  const sesion = obtenerSesion();
+  if (sesion && sesion.pagina) paginaActual = sesion.pagina;
+
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
     pdfDoc = pdf;
-    paginaActual = 1;
     renderPagina();
     cargando.classList.add("hidden");
     document.getElementById("bienvenida").classList.add("hidden");
   });
 }
 
-/* ===== RENDER PÁGINA ===== */
+/* ===== RENDER PÁGINA CON MARCA DE AGUA PROFESIONAL ===== */
 function renderPagina() {
+  if (!pdfDoc || renderizando) return;
+  renderizando = true;
+
   const contenedor = document.getElementById("pdf-viewer");
   contenedor.innerHTML = "";
 
@@ -243,20 +265,30 @@ function renderPagina() {
     canvas.height = viewport.height;
 
     page.render({ canvasContext: ctx, viewport }).promise.then(() => {
-      ctx.globalAlpha = 0.12;
-      ctx.font = "40px Arial";
+      // Marca de agua diagonal
+      const texto = "DOCUMENTO CONFIDENCIAL";
+      ctx.save();
+      ctx.globalAlpha = 0.15;
       ctx.fillStyle = "black";
-      ctx.rotate(-0.3);
-      ctx.fillText("Documento confidencial", 50, canvas.height / 2);
-      ctx.rotate(0.3);
-      ctx.globalAlpha = 1;
+      ctx.font = "bold 40px Arial";
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(-0.35);
+      ctx.textAlign = "center";
+      ctx.fillText(texto, 0, 0);
+      ctx.restore();
+
+      renderizando = false;
     });
 
     contenedor.appendChild(canvas);
+    guardarSesion(
+      obtenerSesion()?.nombre || "Invitado",
+      obtenerSesion()?.correo || ""
+    );
   });
 }
 
-/* ===== CLICK PC ===== */
+/* ===== NAVEGACIÓN CLICK ===== */
 document.getElementById("pdf-viewer").addEventListener("click", e => {
   if (!pdfDoc) return;
 
@@ -303,6 +335,9 @@ window.addEventListener("load", () => {
   if (sesion) {
     document.getElementById("formulario").classList.add("hidden");
     document.getElementById("pdf").classList.remove("hidden");
+    paginaActual = sesion.pagina || 1;
     cargarPDF();
   }
+
+  if (estaBloqueado()) iniciarContadorBloqueo();
 });
