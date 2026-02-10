@@ -24,8 +24,7 @@
           rgba(255, 255, 255, 0.93),
           rgba(255, 255, 255, 0.93)
         ),
-        url(https://i.pinimg.com/originals/94/81/30/948130e1b398d9b8150275ebe21470cb.gif)
-        center center / cover no-repeat;
+        url("fondo.gif") center center / cover no-repeat;
       padding: 20px;
       max-width: 450px;
       margin: auto;
@@ -62,14 +61,65 @@
       color: #555;
     }
 
-    /* ===== VISOR PDF ===== */
+    /* ===== VISOR PDF FULLSCREEN ===== */
     #pdf {
       position: fixed;
       inset: 0;
+      width: 100vw;
+      height: 100vh;
       background: #111;
+      overflow: hidden;
       z-index: 999;
     }
 
+    /* ===== MENSAJES SUPERIORES ===== */
+    #pdf-header {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+      z-index: 20;
+      pointer-events: none;
+    }
+
+    #pdf-header h2 {
+      color: white;
+      margin: 0;
+      font-size: 22px;
+    }
+
+    /* ===== BOTÓN CERRAR ===== */
+    #cerrar-btn {
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: rgba(0,0,0,0.65);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      cursor: pointer;
+      z-index: 30;
+      font-size: 14px;
+    }
+
+    #cerrar-btn:hover {
+      background: rgba(0,0,0,0.85);
+    }
+
+    /* ===== CARGANDO ===== */
+    #cargando {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      z-index: 15;
+    }
+
+    /* ===== CONTENEDOR PDF ===== */
     #pdf-viewer {
       width: 100%;
       height: 100%;
@@ -85,45 +135,6 @@
       box-shadow: 0 25px 50px rgba(0,0,0,0.7);
       border-radius: 6px;
     }
-
-    /* ===== BOTÓN CERRAR ===== */
-    #cerrar-btn {
-      position: fixed;
-      top: 15px;
-      right: 15px;
-      background: rgba(0,0,0,0.65);
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 20px;
-      cursor: pointer;
-      z-index: 30;
-    }
-
-    /* ===== CARGANDO ===== */
-    #cargando {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 18px;
-      z-index: 15;
-    }
-
-    /* ===== PANTALLA NEGRA FINAL ===== */
-    #pantalla-negra {
-      position: fixed;
-      inset: 0;
-      background: black;
-      color: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      font-size: 26px;
-      z-index: 2000;
-    }
   </style>
 </head>
 
@@ -133,48 +144,43 @@
 <div class="box" id="formulario">
   <h2>Acceso al documento</h2>
 
+  <!-- DATOS DEL VISITANTE -->
   <h3>🧑‍💼 Tus datos</h3>
-  <small>Estos datos son tuyos.</small>
+  <p>
+    <small>
+      Esta información corresponde a la persona que solicita el acceso
+      y se utiliza únicamente para registrar quién ingresó al documento.
+    </small>
+  </p>
 
   <input type="text" id="nombre" placeholder="Tu nombre completo">
   <input type="email" id="correo" placeholder="Tu correo electrónico">
 
   <hr>
 
+  <!-- DATOS DEL AUTOR -->
   <h3>✍️ Sobre el autor</h3>
-  <small>Las siguientes preguntas no son sobre ti.</small>
+  <p>
+    <small>
+      Las siguientes preguntas hacen referencia al autor del documento.
+      No responden a tus gustos personales.
+    </small>
+  </p>
 
-  <p><strong>Cantante favorito del autor</strong></p>
+  <p><strong>Cantante favorito del autor</strong><br>
+    <small>(Ambos nombres, con mayúscula. Ej: Damiano David)</small>
+  </p>
   <input type="text" id="p1">
 
-  <p><strong>Fecha de cumpleaños del autor</strong></p>
+  <p><strong>Fecha de cumpleaños del autor</strong><br>
+    <small>(Formato: 5/4/08 usando / y números)</small>
+  </p>
   <input type="text" id="p2">
 
-  <p><strong>Serie favorita del autor</strong></p>
+  <p><strong>Serie favorita del autor</strong><br>
+    <small>(Nombre completo, con mayúscula. Ej: El Mentalista)</small>
+  </p>
   <input type="text" id="p3">
-
-  <hr>
-
-  <h3>🧠 Reflexión</h3>
-
-  <p><strong>
-    Si supieras que la guerra que estás batallando la perderás,
-    ¿aun así seguirías peleando?
-  </strong></p>
-
-  <label><input type="radio" name="q1" value="si"> Sí</label><br>
-  <label><input type="radio" name="q1" value="no"> No</label>
-
-  <button type="button" onclick="verificarPregunta1()">Verificar</button>
-  <p id="respuesta-q1" style="font-weight:bold;"></p>
-
-  <hr>
-
-  <h3>❓ Última pregunta</h3>
-  <p><strong>¿Conoces al autor?</strong></p>
-
-  <label><input type="radio" name="q2" value="si"> Sí</label><br>
-  <label><input type="radio" name="q2" value="no"> No</label>
 
   <button type="button" onclick="validar()">Acceder</button>
   <p class="error" id="mensaje"></p>
@@ -182,18 +188,22 @@
 
 <!-- ===== VISOR PDF ===== -->
 <div id="pdf" class="hidden">
-  <button id="cerrar-btn" onclick="cerrarPDF()">✕</button>
-  <p id="cargando" class="hidden">Cargando documento...</p>
-  <div id="pdf-viewer"></div>
-</div>
 
-<!-- ===== PANTALLA NEGRA ===== -->
-<div id="pantalla-negra" class="hidden">
-  <p id="mensaje-final"></p>
+  <button id="cerrar-btn" onclick="cerrarPDF()">✕</button>
+
+  <div id="pdf-header">
+    <h2 id="bienvenida" class="hidden"></h2>
+  </div>
+
+  <p id="cargando" class="hidden">Cargando documento...</p>
+
+  <div id="pdf-viewer"></div>
 </div>
 
 <!-- PDF.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+<!-- Script -->
 <script src="script.js"></script>
 
 </body>
