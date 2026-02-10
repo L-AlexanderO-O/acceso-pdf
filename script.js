@@ -146,8 +146,8 @@ function validar() {
     return;
   }
 
-  const nombre = nombre.value.trim();
-  const correo = correo.value.trim();
+  const nombre = document.getElementById("nombre").value.trim();
+  const correo = document.getElementById("correo").value.trim();
   const p1 = document.getElementById("p1").value.trim();
   const p2 = document.getElementById("p2").value.trim();
   const p3 = document.getElementById("p3").value.trim();
@@ -309,3 +309,4 @@ window.addEventListener("load", () => {
     cargarPDF();
   }
 });
+
