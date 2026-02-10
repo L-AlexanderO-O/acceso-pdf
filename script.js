@@ -39,7 +39,7 @@ function guardarSesion(nombre, correo) {
     JSON.stringify({
       nombre,
       correo,
-      pagina: paginaActual,
+      pagina: paginaActual, // Guardamos la última página vista
       expira: Date.now() + DURACION_SESION
     })
   );
@@ -232,7 +232,7 @@ function cargarPDF() {
   cargando.classList.remove("hidden");
 
   const sesion = obtenerSesion();
-  if (sesion && sesion.pagina) paginaActual = sesion.pagina;
+  if (sesion && sesion.pagina) paginaActual = sesion.pagina; // Retomar última página
 
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
     pdfDoc = pdf;
@@ -265,7 +265,7 @@ function renderPagina() {
     canvas.height = viewport.height;
 
     page.render({ canvasContext: ctx, viewport }).promise.then(() => {
-      // ===== MARCA DE AGUA PERSONALIZADA =====
+      // Marca de agua (puede ser personalizada con nombre del usuario)
       const sesion = obtenerSesion();
       const nombreUsuario = sesion?.nombre || "INVITADO";
 
@@ -273,32 +273,25 @@ function renderPagina() {
       ctx.globalAlpha = 0.15;
       ctx.fillStyle = "black";
       ctx.textAlign = "center";
-
-      // Nombre del usuario grande y diagonal
       ctx.font = "bold 36px Arial";
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate(-0.35);
       ctx.fillText(nombreUsuario.toUpperCase(), 0, 0);
-
-      // Texto "Documento confidencial" más pequeño debajo
       ctx.font = "bold 24px Arial";
       ctx.fillText("DOCUMENTO CONFIDENCIAL", 0, 50);
-
       ctx.restore();
 
       renderizando = false;
+
+      // Guardar la página actual en sesión
+      if (sesion) guardarSesion(nombreUsuario, sesion.correo);
     });
 
     contenedor.appendChild(canvas);
-
-    // Guardar la página actual y el nombre del usuario
-    if (sesion) {
-      guardarSesion(nombreUsuario, sesion.correo);
-    }
   });
 }
 
-/* ===== NAVEGACIÓN CLICK ===== */
+// Click para navegar
 document.getElementById("pdf-viewer").addEventListener("click", e => {
   if (!pdfDoc) return;
 
@@ -306,19 +299,17 @@ document.getElementById("pdf-viewer").addEventListener("click", e => {
   if (e.clientX > mitad && paginaActual < pdfDoc.numPages) {
     paginaActual++;
     renderPagina();
+    const sesion = obtenerSesion();
+    if (sesion) guardarSesion(sesion.nombre, sesion.correo);
   } else if (e.clientX <= mitad && paginaActual > 1) {
     paginaActual--;
     renderPagina();
+    const sesion = obtenerSesion();
+    if (sesion) guardarSesion(sesion.nombre, sesion.correo);
   }
 });
 
-/* ===== SWIPE MÓVIL ===== */
-let touchInicioX = 0;
-
-document.getElementById("pdf-viewer").addEventListener("touchstart", e => {
-  touchInicioX = e.touches[0].clientX;
-});
-
+// Swipe para navegar
 document.getElementById("pdf-viewer").addEventListener("touchend", e => {
   if (!pdfDoc) return;
 
@@ -327,6 +318,8 @@ document.getElementById("pdf-viewer").addEventListener("touchend", e => {
     if (diff > 0 && paginaActual < pdfDoc.numPages) paginaActual++;
     if (diff < 0 && paginaActual > 1) paginaActual--;
     renderPagina();
+    const sesion = obtenerSesion();
+    if (sesion) guardarSesion(sesion.nombre, sesion.correo);
   }
 });
 
@@ -351,4 +344,5 @@ window.addEventListener("load", () => {
 
   if (estaBloqueado()) iniciarContadorBloqueo();
 });
+
 
