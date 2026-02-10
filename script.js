@@ -216,8 +216,9 @@ function cargarPDF() {
 
   pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
     pdfDoc = pdf;
-    paginaActual = 1;
-    renderPagina();
+    const guardada = Number(localStorage.getItem("ultimaPaginaDocumento"));
+paginaActual = guardada && guardada > 0 ? guardada : 1;
+renderPagina();
     cargando.classList.add("hidden");
     document.getElementById("bienvenida").classList.add("hidden");
   });
@@ -262,12 +263,14 @@ document.getElementById("pdf-viewer").addEventListener("click", e => {
 
   const mitad = window.innerWidth / 2;
   if (e.clientX > mitad && paginaActual < pdfDoc.numPages) {
-    paginaActual++;
-    renderPagina();
-  } else if (e.clientX <= mitad && paginaActual > 1) {
-    paginaActual--;
-    renderPagina();
-  }
+  paginaActual++;
+  guardarPaginaActual();
+  renderPagina();
+} else if (e.clientX <= mitad && paginaActual > 1) {
+  paginaActual--;
+  guardarPaginaActual();
+  renderPagina();
+}
 });
 
 /* ===== SWIPE MÓVIL ===== */
@@ -282,9 +285,22 @@ document.getElementById("pdf-viewer").addEventListener("touchend", e => {
 
   const diff = touchInicioX - e.changedTouches[0].clientX;
   if (Math.abs(diff) > 40) {
-    if (diff > 0 && paginaActual < pdfDoc.numPages) paginaActual++;
-    if (diff < 0 && paginaActual > 1) paginaActual--;
-    renderPagina();
+    let cambio = false;
+
+if (diff > 0 && paginaActual < pdfDoc.numPages) {
+  paginaActual++;
+  cambio = true;
+}
+
+if (diff < 0 && paginaActual > 1) {
+  paginaActual--;
+  cambio = true;
+}
+
+if (cambio) {
+  guardarPaginaActual();
+  renderPagina();
+}
   }
 });
 
@@ -306,4 +322,12 @@ window.addEventListener("load", () => {
     cargarPDF();
   }
 });
+
+/*====ultimaPaginaDocumento====*/
+
+function guardarPaginaActual() {
+  if (!pdfDoc) return;
+  localStorage.setItem("ultimaPaginaDocumento", paginaActual);
+}
+
 
