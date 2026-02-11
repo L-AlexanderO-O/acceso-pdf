@@ -1,43 +1,37 @@
-/* ===== URL DE GOOGLE APPS SCRIPT ===== */
+/* ================= CONFIGURACIÓN ================= */
+
 const SHEET_URL =
   "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
 
-/* ===== CONFIGURACIÓN PDF.js ===== */
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
-
-const urlPDF = "documento.pdf";
-
-/* ===== CONFIG BLOQUEO ===== */
-const MAX_INTENTOS = 3;
-const BLOQUEO_MINUTOS = 10;
-
-/* ===== CONFIG SESIÓN ===== */
+const PDF_URL = "documento.pdf";
 const DURACION_SESION = 24 * 60 * 60 * 1000;
 
-/* ===== VARIABLES ===== */
+/* ================= ELEMENTOS DOM ================= */
+
+const nombreInput = document.getElementById("nombre");
+const correoInput = document.getElementById("correo");
+const p1Input = document.getElementById("p1");
+const p2Input = document.getElementById("p2");
+const p3Input = document.getElementById("p3");
+
+const formulario = document.getElementById("formulario");
+const pdf = document.getElementById("pdf");
+const pdfViewer = document.getElementById("pdf-viewer");
+const contadorPagina = document.getElementById("contador-pagina");
+const evaluacion = document.getElementById("evaluacion");
+
+/* ================= VARIABLES ================= */
+
 let pdfDoc = null;
 let paginaActual = 1;
-let renderizando = false;
+let totalPaginas = 0;
 
 let tiempoInicio = null;
 let tiempoTotal = 0;
 let tiempoPagina = {};
-let documentoLeido = false;
 
-let bloqueoInterval = null;
-let touchInicioX = 0;
+/* ================= SESIÓN ================= */
 
-/* ===== UTILIDADES ===== */
-function correoValido(correo) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo);
-}
-
-function normalizarTexto(texto) {
-  return texto.trim().toLowerCase().replace(/\s+/g, " ");
-}
-
-/* ===== SESIÓN ===== */
 function guardarSesion(nombre, correo) {
   localStorage.setItem(
     "sesionDocumento",
@@ -45,143 +39,81 @@ function guardarSesion(nombre, correo) {
       nombre,
       correo,
       pagina: paginaActual,
-      expira: Date.now() + DURACION_SESION
+      expira: Date.now() + DURACION_SESION,
     })
   );
 }
 
 function obtenerSesion() {
-  const s = localStorage.getItem("sesionDocumento");
-  if (!s) return null;
+  const data = localStorage.getItem("sesionDocumento");
+  if (!data) return null;
 
-  const datos = JSON.parse(s);
-  if (Date.now() > datos.expira) {
+  const sesion = JSON.parse(data);
+  if (Date.now() > sesion.expira) {
     localStorage.removeItem("sesionDocumento");
     return null;
   }
-  return datos;
+  return sesion;
 }
 
-function cerrarSesion() {
-  localStorage.removeItem("sesionDocumento");
-}
+/* ================= REGISTRO ================= */
 
-/* ===== BLOQUEO ===== */
-function estaBloqueado() {
-  const hasta = localStorage.getItem("bloqueoHasta");
-  if (!hasta) return false;
-
-  if (Date.now() > Number(hasta)) {
-    localStorage.removeItem("bloqueoHasta");
-    localStorage.removeItem("intentosFallidos");
-    clearInterval(bloqueoInterval);
-    return false;
-  }
-  return true;
-}
-
-function iniciarContadorBloqueo() {
-  const mensaje = document.getElementById("mensaje");
-  bloqueoInterval = setInterval(() => {
-    const restante = Number(localStorage.getItem("bloqueoHasta")) - Date.now();
-    if (restante <= 0) {
-      clearInterval(bloqueoInterval);
-      mensaje.innerText = "";
-    } else {
-      const m = Math.floor(restante / 60000);
-      const s = Math.floor((restante % 60000) / 1000);
-      mensaje.innerText = `Acceso bloqueado. Intenta en ${m}m ${s}s`;
-    }
-  }, 1000);
-}
-
-function registrarFallo() {
-  let intentos = Number(localStorage.getItem("intentosFallidos")) || 0;
-  intentos++;
-  localStorage.setItem("intentosFallidos", intentos);
-
-  if (intentos >= MAX_INTENTOS) {
-    localStorage.setItem(
-      "bloqueoHasta",
-      Date.now() + BLOQUEO_MINUTOS * 60000
-    );
-    iniciarContadorBloqueo();
-  }
-}
-
-/* ===== REGISTRO GOOGLE SHEETS ===== */
 function registrar(nombre, correo, resultado) {
   fetch(SHEET_URL, {
     method: "POST",
-    mode: "no-cors",
-    body: JSON.stringify({ nombre, correo, resultado })
+    body: JSON.stringify({
+      nombre,
+      correo,
+      resultado,
+      fecha: new Date().toLocaleString(),
+    }),
   });
 }
 
-/* ===== VALIDAR ACCESO ===== */
-function validar() {
-  const mensaje = document.getElementById("mensaje");
-  if (estaBloqueado()) {
-    iniciarContadorBloqueo();
-    return;
-  }
+/* ================= TIEMPO ================= */
 
-  const nombre = nombreInput.value.trim();
-  const correo = correoInput.value.trim();
-  const p1 = p1Input.value.trim();
-  const p2 = p2Input.value.trim();
-  const p3 = p3Input.value.trim();
+function iniciarTiempo() {
+  tiempoInicio = Date.now();
+}
 
-  if (!nombre || !correo || !p1 || !p2 || !p3) {
-    mensaje.innerText = "Completa todos los campos.";
-    return;
-  }
+function guardarTiempoPagina() {
+  if (!tiempoInicio) return;
 
-  if (!correoValido(correo)) {
-    mensaje.innerText = "Correo inválido.";
-    return;
-  }
+  const ahora = Date.now();
+  const diff = ahora - tiempoInicio;
 
-  if (
-    normalizarTexto(p1) === "damiano david" &&
-    p2 === "5/4/08" &&
-    normalizarTexto(p3) === "el mentalista"
-  ) {
-    registrar(nombre, correo, "✅ Acceso permitido");
-    localStorage.removeItem("intentosFallidos");
-    localStorage.removeItem("bloqueoHasta");
-    guardarSesion(nombre, correo);
+  tiempoTotal += diff;
+  tiempoPagina[paginaActual] =
+    (tiempoPagina[paginaActual] || 0) + diff;
 
-    formulario.classList.add("hidden");
-    pdf.classList.remove("hidden");
-    cargarPDF();
+  tiempoInicio = ahora;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    guardarTiempoPagina();
+    tiempoInicio = null;
   } else {
-    registrarFallo();
-    registrar(nombre, correo, "❌ Acceso denegado");
-    mensaje.innerText = "Respuesta incorrecta.";
+    iniciarTiempo();
   }
-}
+});
 
-/* ===== PDF ===== */
-function cargarPDF() {
+/* ================= PDF ================= */
+
+pdfjsLib.getDocument(PDF_URL).promise.then((doc) => {
+  pdfDoc = doc;
+  totalPaginas = doc.numPages;
+
   const sesion = obtenerSesion();
-  if (sesion?.pagina) paginaActual = sesion.pagina;
+  if (sesion) paginaActual = sesion.pagina || 1;
 
-  pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
-    pdfDoc = pdf;
-    tiempoInicio = Date.now();
-    renderPagina();
-  });
-}
+  renderPagina(paginaActual);
+});
 
-function renderPagina() {
-  if (!pdfDoc || renderizando) return;
-  renderizando = true;
+function renderPagina(num) {
+  guardarTiempoPagina();
 
-  const contenedor = document.getElementById("pdf-viewer");
-  contenedor.innerHTML = "";
-
-  pdfDoc.getPage(paginaActual).then(page => {
+  pdfDoc.getPage(num).then((page) => {
     const viewport = page.getViewport({ scale: 1.5 });
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -189,93 +121,98 @@ function renderPagina() {
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
+    pdfViewer.innerHTML = "";
+    pdfViewer.appendChild(canvas);
+
     page.render({ canvasContext: ctx, viewport }).promise.then(() => {
-      const sesion = obtenerSesion();
-      const nombre = sesion?.nombre || "INVITADO";
-
-      ctx.save();
-      ctx.globalAlpha = 0.15;
-      ctx.textAlign = "center";
-      ctx.font = "bold 36px Arial";
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate(-0.35);
-      ctx.fillText(nombre.toUpperCase(), 0, 0);
-      ctx.fillText("DOCUMENTO CONFIDENCIAL", 0, 50);
-      ctx.restore();
-
-      contenedor.appendChild(canvas);
-      renderizando = false;
-
-      guardarSesion(nombre, sesion.correo);
-
-      contadorPagina.innerText = `Página ${paginaActual} / ${pdfDoc.numPages}`;
-
-      if (paginaActual === pdfDoc.numPages && !documentoLeido) {
-        documentoLeido = true;
-        guardarTiempoPagina();
-        contenedor.classList.add("hidden");
-        evaluacion.classList.remove("hidden");
-      }
+      dibujarMarcaAgua(ctx, canvas);
+      iniciarTiempo();
     });
+
+    contadorPagina.textContent = `Página ${num} / ${totalPaginas}`;
+    guardarSesion(obtenerSesion().nombre, obtenerSesion().correo);
   });
 }
 
-/* ===== NAVEGACIÓN ===== */
-pdfViewer.addEventListener("click", e => {
-  guardarTiempoPagina();
-  if (e.clientX > window.innerWidth / 2 && paginaActual < pdfDoc.numPages)
+function dibujarMarcaAgua(ctx, canvas) {
+  const sesion = obtenerSesion();
+  if (!sesion) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.15;
+  ctx.font = "40px Arial";
+  ctx.fillStyle = "#000";
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate(-Math.PI / 4);
+  ctx.fillText(sesion.nombre, -200, 0);
+  ctx.restore();
+}
+
+/* ================= NAVEGACIÓN ================= */
+
+pdfViewer.addEventListener("click", (e) => {
+  const mitad = pdfViewer.clientWidth / 2;
+
+  if (e.offsetX > mitad && paginaActual < totalPaginas) {
     paginaActual++;
-  else if (paginaActual > 1) paginaActual--;
-  renderPagina();
-});
+  } else if (e.offsetX < mitad && paginaActual > 1) {
+    paginaActual--;
+  }
 
-pdfViewer.addEventListener("touchstart", e => {
-  touchInicioX = e.touches[0].clientX;
-});
-
-pdfViewer.addEventListener("touchend", e => {
-  const diff = touchInicioX - e.changedTouches[0].clientX;
-  if (Math.abs(diff) > 40) {
-    guardarTiempoPagina();
-    if (diff > 0 && paginaActual < pdfDoc.numPages) paginaActual++;
-    if (diff < 0 && paginaActual > 1) paginaActual--;
-    renderPagina();
+  if (paginaActual === totalPaginas) {
+    finalizarLectura();
+  } else {
+    renderPagina(paginaActual);
   }
 });
 
-/* ===== TIEMPO ===== */
-function guardarTiempoPagina() {
-  if (!tiempoInicio) return;
-  const ahora = Date.now();
-  tiempoTotal += ahora - tiempoInicio;
-  tiempoInicio = ahora;
+/* ================= LECTURA FINAL ================= */
+
+function finalizarLectura() {
+  guardarTiempoPagina();
+
+  pdf.classList.add("hidden");
+  evaluacion.classList.remove("hidden");
 }
 
-/* ===== FINALIZAR ===== */
-function finalizarLectura() {
+/* ================= EVALUACIÓN ================= */
+
+function enviarEvaluacion() {
   const sesion = obtenerSesion();
+
   const min = Math.floor(tiempoTotal / 60000);
   const seg = Math.floor((tiempoTotal % 60000) / 1000);
 
   registrar(
     sesion.nombre,
     sesion.correo,
-    `📘 LEÍDO | ${min}m ${seg}s | Última pág: ${paginaActual}`
+    JSON.stringify({
+      estado: "LEÍDO",
+      tiempo: `${min}m ${seg}s`,
+      ultimaPagina: paginaActual,
+      evaluacion: {
+        p1: p1Input.value,
+        p2: p2Input.value,
+        p3: p3Input.value,
+      },
+    })
   );
 
-  alert("Lectura finalizada");
-  cerrarSesion();
+  alert("Documento marcado como leído ✅");
+  localStorage.removeItem("sesionDocumento");
   location.reload();
 }
 
-/* ===== AUTOLOGIN ===== */
-window.addEventListener("load", () => {
-  const sesion = obtenerSesion();
-  if (sesion) {
-    formulario.classList.add("hidden");
-    pdf.classList.remove("hidden");
-    cargarPDF();
-  }
-  if (estaBloqueado()) iniciarContadorBloqueo();
-});
+/* ================= FORMULARIO ================= */
 
+formulario.addEventListener("submit", (e) => {
+  e.preventDefault();
+
+  const nombre = nombreInput.value.trim();
+  const correo = correoInput.value.trim();
+
+  guardarSesion(nombre, correo);
+
+  formulario.classList.add("hidden");
+  pdf.classList.remove("hidden");
+});
