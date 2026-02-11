@@ -17,12 +17,9 @@
     .box {
       position: relative;
       background:
-        linear-gradient(
-          rgba(255, 255, 255, 0.93),
-          rgba(255, 255, 255, 0.93)
-        ),
+        linear-gradient(rgba(255,255,255,0.93), rgba(255,255,255,0.93)),
         url(https://i.pinimg.com/originals/96/f9/50/96f950477c818472a59bbb317cb99f1e.gif)
-        center center / cover no-repeat;
+        center / cover no-repeat;
       padding: 20px;
       max-width: 450px;
       margin: auto;
@@ -44,7 +41,7 @@
       border-top: 1px solid #ddd;
     }
 
-    .hidden { display: none; }
+    .hidden { display: none !important; }
 
     .error {
       color: red;
@@ -53,13 +50,11 @@
 
     small { color: #555; }
 
+    /* ===== PDF ===== */
     #pdf {
       position: fixed;
       inset: 0;
-      width: 100vw;
-      height: 100vh;
       background: #111;
-      overflow: hidden;
       z-index: 999;
     }
 
@@ -68,15 +63,9 @@
       top: 20px;
       left: 50%;
       transform: translateX(-50%);
-      text-align: center;
       z-index: 20;
-      pointer-events: none;
-    }
-
-    #pdf-header h2 {
       color: white;
-      margin: 0;
-      font-size: 22px;
+      font-size: 20px;
     }
 
     #cerrar-btn {
@@ -90,21 +79,6 @@
       border-radius: 20px;
       cursor: pointer;
       z-index: 30;
-      font-size: 14px;
-    }
-
-    #cerrar-btn:hover {
-      background: rgba(0,0,0,0.85);
-    }
-
-    #cargando {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 18px;
-      z-index: 15;
     }
 
     #pdf-viewer {
@@ -120,34 +94,36 @@
       max-width: 100%;
       max-height: 100%;
       background: white;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.7);
       border-radius: 6px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.7);
     }
 
-    /* ===== CONTADOR DE PÁGINAS ===== */
     #contador-pagina {
       position: absolute;
       bottom: 20px;
       right: 20px;
       color: white;
-      font-size: 16px;
       font-weight: bold;
       background: rgba(0,0,0,0.4);
-      padding: 5px 10px;
+      padding: 6px 12px;
       border-radius: 8px;
-      z-index: 25;
       pointer-events: none;
     }
 
-    /* Para móviles un poco más grande */
-    @media (max-width: 600px) {
-      #contador-pagina {
-        font-size: 18px;
-        bottom: 15px;
-        right: 15px;
-      }
+    /* ===== EVALUACIÓN ===== */
+    #evaluacion {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
     }
 
+    #evaluacion .box {
+      max-width: 400px;
+    }
   </style>
 </head>
 
@@ -157,74 +133,16 @@
 <div class="box" id="formulario">
   <h2>Acceso al documento</h2>
 
-  <h3>🧑‍💼 Tus datos</h3>
-  <small>
-    Esta información corresponde a la persona que solicita el acceso
-    y se utiliza únicamente para un registro en el documento.
-  </small>
-
   <input type="text" id="nombre" placeholder="Tu nombre completo">
   <input type="email" id="correo" placeholder="Tu correo electrónico">
 
   <hr>
 
-  <h3>✍️ Sobre el autor</h3>
-  <small>
-    Las siguientes preguntas hacen referencia al autor del documento.
-    No responden a tus gustos personales.
-  </small>
+  <input type="text" id="p1" placeholder="Cantante favorito del autor">
+  <input type="text" id="p2" placeholder="Cumpleaños del autor (0/0/00)">
+  <input type="text" id="p3" placeholder="Serie favorita del autor">
 
- <p>
-  <strong>Cantante favorito del autor</strong><br>
-  <small>
-    Contestar con mayúsculas el nombre completo. Ej: Patrick Jane
-  </small>
-</p>
-  <input type="text" id="p1">
-
-  <p>
-  <strong>Fecha de cumpleaños del autor</strong><br>
-  <small>
-    El formato es 0/0/00, usa números y la barra (/). Ej: 9/10/07
-  </small>
-</p>
-  <input type="text" id="p2">
-
-  <p>
-  <strong>Serie favorita del autor</strong><br>
-  <small>
-    Nombre en mayúsculas y completo. Ej: Braking Bad
-  </small>
-</p>
-  <input type="text" id="p3">
-
-  <hr>
-
-  <!-- 🔥 PREGUNTAS PSICOLÓGICAS -->
-  <h3>🧠 Preguntas adicionales</h3>
-
-  <p>
-    <strong>
-      Si lucharas una guerra, y supieras que esta ya está perdida,
-      ¿aun así la lucharías?
-    </strong>
-  </p>
-  <select id="p4" onchange="verificarP4()">
-    <option value="">-- Selecciona una opción --</option>
-    <option value="si">Sí</option>
-    <option value="no">No</option>
-  </select>
-  <p id="msg-p4"></p>
-
-  <p><strong>¿Conoces al autor?</strong></p>
-  <select id="p5" onchange="verificarP5()">
-    <option value="">-- Selecciona una opción --</option>
-    <option value="si">Sí</option>
-    <option value="no">No</option>
-  </select>
-  <p id="msg-p5"></p>
-
-  <button type="button" onclick="validar()">Acceder</button>
+  <button onclick="validar()">Acceder</button>
   <p class="error" id="mensaje"></p>
 </div>
 
@@ -233,12 +151,36 @@
   <button id="cerrar-btn" onclick="cerrarPDF()">✕</button>
 
   <div id="pdf-header">
-    <h2 id="bienvenida" class="hidden"></h2>
+    <span id="contador-pagina"></span>
   </div>
 
-  <p id="cargando" class="hidden">Cargando documento...</p>
-  <div id="pdf-viewer">
-    <div id="contador-pagina"></div>
+  <div id="pdf-viewer"></div>
+</div>
+
+<!-- ===== MINI EVALUACIÓN ===== -->
+<div id="evaluacion" class="hidden">
+  <div class="box">
+    <h3>Mini evaluación final</h3>
+
+    <select id="e1">
+      <option value="">Pregunta 1</option>
+      <option value="a">A</option>
+      <option value="b">B</option>
+    </select>
+
+    <select id="e2">
+      <option value="">Pregunta 2</option>
+      <option value="a">A</option>
+      <option value="b">B</option>
+    </select>
+
+    <select id="e3">
+      <option value="">Pregunta 3</option>
+      <option value="a">A</option>
+      <option value="b">B</option>
+    </select>
+
+    <button onclick="finalizarLectura()">Finalizar lectura</button>
   </div>
 </div>
 
