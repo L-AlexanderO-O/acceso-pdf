@@ -1,218 +1,354 @@
-/* ================= CONFIGURACIÓN ================= */
-
+/* ===== URL DE GOOGLE APPS SCRIPT ===== */
 const SHEET_URL =
   "https://script.google.com/macros/s/AKfycbwihXjpvnumyOohddh3pQMEri_83Y3mmknWsXSz929Ru4oJ3vyr6lX8RWw2KpPBEEDksw/exec";
 
-const PDF_URL = "documento.pdf";
-const DURACION_SESION = 24 * 60 * 60 * 1000;
+/* ===== CONFIGURACIÓN PDF.js ===== */
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
 
-/* ================= ELEMENTOS DOM ================= */
+const urlPDF = "documento.pdf";
 
-const nombreInput = document.getElementById("nombre");
-const correoInput = document.getElementById("correo");
-const p1Input = document.getElementById("p1");
-const p2Input = document.getElementById("p2");
-const p3Input = document.getElementById("p3");
+/* ===== CONFIG BLOQUEO ===== */
+const MAX_INTENTOS = 3;
+const BLOQUEO_MINUTOS = 10;
 
-const formulario = document.getElementById("formulario");
-const pdf = document.getElementById("pdf");
-const pdfViewer = document.getElementById("pdf-viewer");
-const contadorPagina = document.getElementById("contador-pagina");
-const evaluacion = document.getElementById("evaluacion");
+/* ===== CONFIG SESIÓN ===== */
+const DURACION_SESION = 24 * 60 * 60 * 1000; // 1 día
 
-/* ================= VARIABLES ================= */
-
+/* ===== VARIABLES ===== */
 let pdfDoc = null;
 let paginaActual = 1;
-let totalPaginas = 0;
+let renderizando = false;
+let bloqueoInterval = null;
 
-let tiempoInicio = null;
-let tiempoTotal = 0;
-let tiempoPagina = {};
+/* ===== VALIDAR CORREO ===== */
+function correoValido(correo) {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(correo);
+}
 
-/* ================= SESIÓN ================= */
+/* ===== NORMALIZAR TEXTO ===== */
+function normalizarTexto(texto) {
+  return texto.trim().toLowerCase().replace(/\s+/g, " ");
+}
 
+/* ===== SESIÓN ===== */
 function guardarSesion(nombre, correo) {
   localStorage.setItem(
     "sesionDocumento",
     JSON.stringify({
       nombre,
       correo,
-      pagina: paginaActual,
-      expira: Date.now() + DURACION_SESION,
+      pagina: paginaActual, // Guardamos la última página vista
+      expira: Date.now() + DURACION_SESION
     })
   );
 }
 
 function obtenerSesion() {
-  const data = localStorage.getItem("sesionDocumento");
-  if (!data) return null;
+  const sesion = localStorage.getItem("sesionDocumento");
+  if (!sesion) return null;
 
-  const sesion = JSON.parse(data);
-  if (Date.now() > sesion.expira) {
+  const datos = JSON.parse(sesion);
+  if (Date.now() > datos.expira) {
     localStorage.removeItem("sesionDocumento");
     return null;
   }
-  return sesion;
+  return datos;
 }
 
-/* ================= REGISTRO ================= */
+function cerrarSesion() {
+  localStorage.removeItem("sesionDocumento");
+}
 
+/* ===== BLOQUEO ===== */
+function estaBloqueado() {
+  const hasta = localStorage.getItem("bloqueoHasta");
+  if (!hasta) return false;
+
+  if (Date.now() > Number(hasta)) {
+    localStorage.removeItem("bloqueoHasta");
+    localStorage.removeItem("intentosFallidos");
+    clearInterval(bloqueoInterval);
+    return false;
+  }
+  return true;
+}
+
+function tiempoRestanteBloqueo() {
+  const hasta = localStorage.getItem("bloqueoHasta");
+  if (!hasta) return null;
+
+  const restanteMs = Number(hasta) - Date.now();
+  if (restanteMs <= 0) return null;
+
+  const minutos = Math.floor(restanteMs / 60000);
+  const segundos = Math.floor((restanteMs % 60000) / 1000);
+  return { minutos, segundos };
+}
+
+function iniciarContadorBloqueo() {
+  const mensaje = document.getElementById("mensaje");
+
+  if (bloqueoInterval) clearInterval(bloqueoInterval);
+
+  bloqueoInterval = setInterval(() => {
+    const tiempo = tiempoRestanteBloqueo();
+    if (!tiempo) {
+      clearInterval(bloqueoInterval);
+      mensaje.innerText = "";
+    } else {
+      mensaje.innerText = `Acceso bloqueado. Intenta nuevamente en ${tiempo.minutos} min ${tiempo.segundos} s.`;
+    }
+  }, 1000);
+}
+
+function registrarFallo() {
+  let intentos = Number(localStorage.getItem("intentosFallidos")) || 0;
+  intentos++;
+  localStorage.setItem("intentosFallidos", intentos);
+
+  if (intentos >= MAX_INTENTOS) {
+    localStorage.setItem(
+      "bloqueoHasta",
+      Date.now() + BLOQUEO_MINUTOS * 60 * 1000
+    );
+    iniciarContadorBloqueo();
+  }
+}
+
+/* ===== PREGUNTAS SELECCIÓN MÚLTIPLE (MENSAJES) ===== */
+function verificarP4() {
+  const valor = document.getElementById("p4").value;
+  const msg = document.getElementById("msg-p4");
+
+  msg.style.fontWeight = "bold";
+
+  if (!valor) {
+    msg.innerText = "";
+    return;
+  }
+
+  if (valor === "si") {
+    msg.innerText = "Idiota";
+    msg.style.color = "red";
+  } else {
+    msg.innerText = "Cobarde";
+    msg.style.color = "orange";
+  }
+}
+
+function verificarP5() {
+  const valor = document.getElementById("p5").value;
+  const msg = document.getElementById("msg-p5");
+
+  msg.style.fontWeight = "bold";
+
+  if (!valor) {
+    msg.innerText = "";
+    return;
+  }
+
+  if (valor === "si") {
+    msg.innerText = "No... no me conoces";
+    msg.style.color = "red";
+  } else {
+    msg.innerText = "Pues lo harás";
+    msg.style.color = "green";
+  }
+}
+
+/* ===== VALIDACIÓN PRINCIPAL ===== */
+function validar() {
+  const mensaje = document.getElementById("mensaje");
+
+  if (estaBloqueado()) {
+    iniciarContadorBloqueo();
+    return;
+  }
+
+  const nombre = document.getElementById("nombre").value.trim();
+  const correo = document.getElementById("correo").value.trim();
+  const p1 = document.getElementById("p1").value.trim();
+  const p2 = document.getElementById("p2").value.trim();
+  const p3 = document.getElementById("p3").value.trim();
+  const p4 = document.getElementById("p4").value;
+  const p5 = document.getElementById("p5").value;
+
+  const r1 = "Damiano David";
+  const r2 = "5/4/08";
+  const r3 = "El Mentalista";
+
+  if (!nombre || !correo || !p1 || !p2 || !p3 || !p4 || !p5) {
+    registrar(nombre, correo, "❌ Campos incompletos");
+    mensaje.innerText =
+      "Debes completar todos los campos, incluidas las preguntas de selección.";
+    return;
+  }
+
+  if (!correoValido(correo)) {
+    mensaje.innerText = "Ingresa un correo electrónico válido.";
+    return;
+  }
+
+  if (
+    normalizarTexto(p1) === normalizarTexto(r1) &&
+    p2 === r2 &&
+    normalizarTexto(p3) === normalizarTexto(r3)
+  ) {
+    registrar(nombre, correo, "✅ Acceso permitido");
+
+    localStorage.removeItem("intentosFallidos");
+    localStorage.removeItem("bloqueoHasta");
+    guardarSesion(nombre, correo);
+
+    document.getElementById("formulario").classList.add("hidden");
+    document.getElementById("pdf").classList.remove("hidden");
+
+    document.getElementById("bienvenida").innerText = `Bienvenido/a ${nombre}`;
+    document.getElementById("bienvenida").classList.remove("hidden");
+
+    cargarPDF();
+  } else {
+    registrarFallo();
+    registrar(nombre, correo, "❌ Acceso denegado");
+    mensaje.innerText =
+      "Respuesta incorrecta. Tras 3 intentos se bloqueará.";
+  }
+}
+
+/* ===== REGISTRO GOOGLE SHEETS ===== */
 function registrar(nombre, correo, resultado) {
   fetch(SHEET_URL, {
     method: "POST",
-    body: JSON.stringify({
-      nombre,
-      correo,
-      resultado,
-      fecha: new Date().toLocaleString(),
-    }),
+    mode: "no-cors",
+    body: JSON.stringify({ nombre, correo, resultado })
   });
 }
 
-/* ================= TIEMPO ================= */
-
-function iniciarTiempo() {
-  tiempoInicio = Date.now();
-}
-
-function guardarTiempoPagina() {
-  if (!tiempoInicio) return;
-
-  const ahora = Date.now();
-  const diff = ahora - tiempoInicio;
-
-  tiempoTotal += diff;
-  tiempoPagina[paginaActual] =
-    (tiempoPagina[paginaActual] || 0) + diff;
-
-  tiempoInicio = ahora;
-}
-
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    guardarTiempoPagina();
-    tiempoInicio = null;
-  } else {
-    iniciarTiempo();
-  }
-});
-
-/* ================= PDF ================= */
-
-pdfjsLib.getDocument(PDF_URL).promise.then((doc) => {
-  pdfDoc = doc;
-  totalPaginas = doc.numPages;
+/* ===== CARGAR PDF ===== */
+function cargarPDF() {
+  const cargando = document.getElementById("cargando");
+  cargando.classList.remove("hidden");
 
   const sesion = obtenerSesion();
-  if (sesion) paginaActual = sesion.pagina || 1;
+  if (sesion && sesion.pagina) paginaActual = sesion.pagina; // Retomar última página
 
-  renderPagina(paginaActual);
-});
+  pdfjsLib.getDocument(urlPDF).promise.then(pdf => {
+    pdfDoc = pdf;
+    renderPagina();
+    cargando.classList.add("hidden");
+    document.getElementById("bienvenida").classList.add("hidden");
+  });
+}
 
-function renderPagina(num) {
-  guardarTiempoPagina();
+/* ===== RENDER PÁGINA CON MARCA DE AGUA PROFESIONAL ===== */
+function renderPagina() {
+  if (!pdfDoc || renderizando) return;
+  renderizando = true;
 
-  pdfDoc.getPage(num).then((page) => {
-    const viewport = page.getViewport({ scale: 1.5 });
+  const contenedor = document.getElementById("pdf-viewer");
+  contenedor.innerHTML = "";
+
+  pdfDoc.getPage(paginaActual).then(page => {
+    const base = page.getViewport({ scale: 1 });
+    const escala = Math.min(
+      window.innerWidth / base.width,
+      window.innerHeight / base.height
+    );
+
+    const viewport = page.getViewport({ scale: escala });
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
 
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
-    pdfViewer.innerHTML = "";
-    pdfViewer.appendChild(canvas);
-
     page.render({ canvasContext: ctx, viewport }).promise.then(() => {
-      dibujarMarcaAgua(ctx, canvas);
-      iniciarTiempo();
+      // Marca de agua (puede ser personalizada con nombre del usuario)
+      const sesion = obtenerSesion();
+      const nombreUsuario = sesion?.nombre || "INVITADO";
+
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = "black";
+      ctx.textAlign = "center";
+      ctx.font = "bold 36px Arial";
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(-0.35);
+      ctx.fillText(nombreUsuario.toUpperCase(), 0, 0);
+      ctx.font = "bold 24px Arial";
+      ctx.fillText("DOCUMENTO CONFIDENCIAL", 0, 50);
+      ctx.restore();
+
+      renderizando = false;
+
+      // Guardar la página actual en sesión
+      if (sesion) guardarSesion(nombreUsuario, sesion.correo);
     });
 
-    contadorPagina.textContent = `Página ${num} / ${totalPaginas}`;
-    guardarSesion(obtenerSesion().nombre, obtenerSesion().correo);
+    // ===== ACTUALIZAR CONTADOR DE PÁGINAS =====
+const contador = document.getElementById("contador-pagina");
+if (contador && pdfDoc) {
+  contador.innerText = `Página ${paginaActual} / ${pdfDoc.numPages}`;
+}
+
+    contenedor.appendChild(canvas);
   });
 }
 
-function dibujarMarcaAgua(ctx, canvas) {
-  const sesion = obtenerSesion();
-  if (!sesion) return;
+// Click para navegar
+document.getElementById("pdf-viewer").addEventListener("click", e => {
+  if (!pdfDoc) return;
 
-  ctx.save();
-  ctx.globalAlpha = 0.15;
-  ctx.font = "40px Arial";
-  ctx.fillStyle = "#000";
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate(-Math.PI / 4);
-  ctx.fillText(sesion.nombre, -200, 0);
-  ctx.restore();
-}
-
-/* ================= NAVEGACIÓN ================= */
-
-pdfViewer.addEventListener("click", (e) => {
-  const mitad = pdfViewer.clientWidth / 2;
-
-  if (e.offsetX > mitad && paginaActual < totalPaginas) {
+  const mitad = window.innerWidth / 2;
+  if (e.clientX > mitad && paginaActual < pdfDoc.numPages) {
     paginaActual++;
-  } else if (e.offsetX < mitad && paginaActual > 1) {
+    renderPagina();
+    const sesion = obtenerSesion();
+    if (sesion) guardarSesion(sesion.nombre, sesion.correo);
+  } else if (e.clientX <= mitad && paginaActual > 1) {
     paginaActual--;
-  }
-
-  if (paginaActual === totalPaginas) {
-    finalizarLectura();
-  } else {
-    renderPagina(paginaActual);
+    renderPagina();
+    const sesion = obtenerSesion();
+    if (sesion) guardarSesion(sesion.nombre, sesion.correo);
   }
 });
 
-/* ================= LECTURA FINAL ================= */
+// Swipe para navegar
+document.getElementById("pdf-viewer").addEventListener("touchend", e => {
+  if (!pdfDoc) return;
 
-function finalizarLectura() {
-  guardarTiempoPagina();
+  const diff = touchInicioX - e.changedTouches[0].clientX;
+  if (Math.abs(diff) > 40) {
+    if (diff > 0 && paginaActual < pdfDoc.numPages) paginaActual++;
+    if (diff < 0 && paginaActual > 1) paginaActual--;
+    renderPagina();
+    const sesion = obtenerSesion();
+    if (sesion) guardarSesion(sesion.nombre, sesion.correo);
+  }
+});
 
-  pdf.classList.add("hidden");
-  evaluacion.classList.remove("hidden");
+/* ===== CERRAR PDF ===== */
+function cerrarPDF() {
+  cerrarSesion();
+  document.getElementById("pdf").classList.add("hidden");
+  document.getElementById("formulario").classList.remove("hidden");
+  document.getElementById("pdf-viewer").innerHTML = "";
+  pdfDoc = null;
 }
 
-/* ================= EVALUACIÓN ================= */
-
-function enviarEvaluacion() {
+/* ===== AUTOLOGIN ===== */
+window.addEventListener("load", () => {
   const sesion = obtenerSesion();
+  if (sesion) {
+    document.getElementById("formulario").classList.add("hidden");
+    document.getElementById("pdf").classList.remove("hidden");
+    paginaActual = sesion.pagina || 1;
+    cargarPDF();
+  }
 
-  const min = Math.floor(tiempoTotal / 60000);
-  const seg = Math.floor((tiempoTotal % 60000) / 1000);
-
-  registrar(
-    sesion.nombre,
-    sesion.correo,
-    JSON.stringify({
-      estado: "LEÍDO",
-      tiempo: `${min}m ${seg}s`,
-      ultimaPagina: paginaActual,
-      evaluacion: {
-        p1: p1Input.value,
-        p2: p2Input.value,
-        p3: p3Input.value,
-      },
-    })
-  );
-
-  alert("Documento marcado como leído ✅");
-  localStorage.removeItem("sesionDocumento");
-  location.reload();
-}
-
-/* ================= FORMULARIO ================= */
-
-formulario.addEventListener("submit", (e) => {
-  e.preventDefault();
-
-  const nombre = nombreInput.value.trim();
-  const correo = correoInput.value.trim();
-
-  guardarSesion(nombre, correo);
-
-  formulario.classList.add("hidden");
-  pdf.classList.remove("hidden");
+  if (estaBloqueado()) iniciarContadorBloqueo();
 });
+
+
